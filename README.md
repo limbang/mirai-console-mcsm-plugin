@@ -1,6 +1,15 @@
-# mirai-console-mcsm-plugin
+<div align="center">
 
-[mcsm](https://github.com/MCSManager/MCSManager) api 控制
+[![](https://img.shields.io/github/v/release/limbang/mirai-console-mcsm-plugin?include_prereleases)](https://github.com/limbang/mirai-console-mcsm-plugin/releases)
+![](https://img.shields.io/github/downloads/limbang/mirai-console-mcsm-plugin/total)
+[![](https://img.shields.io/github/license/limbang/mirai-console-mcsm-plugin)](https://github.com/limbang/mirai-console-mcsm-plugin/blob/master/LICENSE)
+[![](https://img.shields.io/badge/mirai-2.10.0-69c1b9)](https://github.com/mamoe/mirai)
+
+本项目是基于 Mirai Console 编写的插件
+<p>用于控制 <a href = "https://github.com/MCSManager/MCSManager">MCSM</a> api</p>
+</div>
+
+## 指令
 
 ```shell
 # 添加api管理
