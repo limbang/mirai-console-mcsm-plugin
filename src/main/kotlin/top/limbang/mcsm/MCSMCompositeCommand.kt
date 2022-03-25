@@ -9,8 +9,10 @@
 
 package top.limbang.mcsm
 
+import net.mamoe.mirai.console.command.BuiltInCommands.AutoLoginCommand.remove
 import net.mamoe.mirai.console.command.CommandSender
 import net.mamoe.mirai.console.command.CompositeCommand
+import top.limbang.mcsm.MCSMCompositeCommand.add
 import top.limbang.mcsm.MCSMData.apiKey
 import top.limbang.mcsm.MCSMData.apiUrl
 import top.limbang.mcsm.MCSMData.serverInstances
@@ -21,7 +23,7 @@ import top.limbang.mcsm.service.MCSMService
 object MCSMCompositeCommand : CompositeCommand(MCSM, "mcsm") {
     private var service: MCSMService? = null
 
-    @SubCommand("add", "添加")
+    @SubCommand("addApi", "添加Api")
     @Description("添加api管理")
     suspend fun CommandSender.add(url: String, key: String) {
         apiUrl = url
@@ -73,6 +75,17 @@ object MCSMCompositeCommand : CompositeCommand(MCSM, "mcsm") {
     suspend fun CommandSender.deleteServerInstances(name: String) {
         serverInstances.remove(name) ?: return
         sendMessage("[$name]删除成功.")
+    }
+
+    @SubCommand("Rename", "重命名服务器实例")
+    @Description("重新命名服务器实例")
+    suspend fun CommandSender.rename(name: String, newName: String) {
+        val server = serverInstances[name]
+        if (server != null) {
+            serverInstances.remove(name)
+            serverInstances[newName] = server
+            sendMessage("原[$name]修改[$newName]成功.")
+        } else sendMessage("没有找到[$name]实例.")
     }
 
     @SubCommand("start", "启动")
@@ -160,7 +173,13 @@ object MCSMCompositeCommand : CompositeCommand(MCSM, "mcsm") {
 
     @SubCommand("createTasks", "ct", "创建任务")
     @Description("向实例创建计划任务")
-    suspend fun CommandSender.createTasks(name: String,tasksName: String,count:Int,time:Int, vararg command: String) {
+    suspend fun CommandSender.createTasks(
+        name: String,
+        tasksName: String,
+        count: Int,
+        time: Int,
+        vararg command: String
+    ) {
         var payload = ""
         command.forEach { payload += "$it " }
         if (serverInstances[name] == null) {
@@ -179,14 +198,21 @@ object MCSMCompositeCommand : CompositeCommand(MCSM, "mcsm") {
 
     @SubCommand("deleteTasks", "dt", "删除任务")
     @Description("向实例删除计划任务")
-    suspend fun CommandSender.deleteTasks(name: String,tasksName: String) {
+    suspend fun CommandSender.deleteTasks(name: String, tasksName: String) {
         if (serverInstances[name] == null) {
             sendMessage("${name}不存在，请查询后输入")
             return
         }
         val instances = serverInstances[name]!!
         val service = getService(this) ?: return
-        runCatching { service.deleteScheduledTasks(instances.uuid, instances.daemonUUid, apiKey, tasksName) }.onSuccess {
+        runCatching {
+            service.deleteScheduledTasks(
+                instances.uuid,
+                instances.daemonUUid,
+                apiKey,
+                tasksName
+            )
+        }.onSuccess {
             sendMessage("删除计划任务[$tasksName]:$it")
         }.onFailure {
             sendMessage(it.localizedMessage)

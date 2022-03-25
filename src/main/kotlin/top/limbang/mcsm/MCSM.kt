@@ -18,7 +18,7 @@ object MCSM : KotlinPlugin(
     JvmPluginDescription(
         id = "top.limbang.mcsm",
         name = "mcsm",
-        version = "1.0.0",
+        version = "1.0.1",
     ) {
         author("limbang")
     }

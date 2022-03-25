@@ -13,8 +13,8 @@
 
 ```shell
 # 添加api管理
-/mcsm add <url> <key>    
-/mcsm 添加 <url> <key>
+/mcsm addApi <url> <key>    
+/mcsm 添加Api <url> <key>
 # 添加需要管理的服务器实例
 /mcsm addServerInstances <name> <uuid> <daemonUUid>    
 /mcsm 添加服务器实例 <name> <uuid> <daemonUUid> 
@@ -32,6 +32,9 @@
 # 删除需要管理的服务器实例
 /mcsm deleteServerInstances <name>
 /mcsm 删除服务器实例 <name>
+# 重新命名服务器实例
+/mcsm Rename <name> <newName>
+/mcsm 重命名服务器实例 <name> <newName>
 # 向实例删除计划任务
 /mcsm deleteTasks <name> <tasksName>    
 /mcsm dt <name> <tasksName>
