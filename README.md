@@ -33,7 +33,7 @@
 /mcsm deleteServerInstances <name>
 /mcsm 删除服务器实例 <name>
 # 重新命名服务器实例
-/mcsm Rename <name> <newName>
+/mcsm rename <name> <newName>
 /mcsm 重命名服务器实例 <name> <newName>
 # 向实例删除计划任务
 /mcsm deleteTasks <name> <tasksName>    

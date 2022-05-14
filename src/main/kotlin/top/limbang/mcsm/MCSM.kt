@@ -11,6 +11,7 @@ package top.limbang.mcsm
 
 import net.mamoe.mirai.console.command.CommandManager.INSTANCE.register
 import net.mamoe.mirai.console.command.CommandManager.INSTANCE.unregister
+import net.mamoe.mirai.console.permission.PermissionService
 import net.mamoe.mirai.console.plugin.jvm.JvmPluginDescription
 import net.mamoe.mirai.console.plugin.jvm.KotlinPlugin
 
@@ -18,11 +19,22 @@ object MCSM : KotlinPlugin(
     JvmPluginDescription(
         id = "top.limbang.mcsm",
         name = "mcsm",
-        version = "1.0.1",
+        version = "1.0.2",
     ) {
         author("limbang")
     }
 ) {
+
+    val PERMISSION_ADMIN by lazy {
+        PermissionService.INSTANCE.register(permissionId("command.admin"), "管理员权限", parentPermission)
+    }
+    val PERMISSION_SERVER by lazy {
+        PermissionService.INSTANCE.register(permissionId("command.server"), "添加/删除/改名/启动/停止/重启/终止服务器权限", PERMISSION_ADMIN)
+    }
+    val PERMISSION_START by lazy {
+        PermissionService.INSTANCE.register(permissionId("command.start"), "启动服务器权限", PERMISSION_SERVER)
+    }
+
     override fun onDisable() {
         MCSMCompositeCommand.unregister()
     }
@@ -30,6 +42,10 @@ object MCSM : KotlinPlugin(
     override fun onEnable() {
         MCSMData.reload()
         MCSMCompositeCommand.register()
+        // 初始化权限注册
+        PERMISSION_ADMIN
+        PERMISSION_SERVER
+        PERMISSION_START
     }
 }
 
