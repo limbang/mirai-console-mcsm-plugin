@@ -14,6 +14,11 @@ import net.mamoe.mirai.console.command.CommandManager.INSTANCE.unregister
 import net.mamoe.mirai.console.permission.PermissionService
 import net.mamoe.mirai.console.plugin.jvm.JvmPluginDescription
 import net.mamoe.mirai.console.plugin.jvm.KotlinPlugin
+import net.mamoe.mirai.contact.nameCardOrNick
+import net.mamoe.mirai.event.globalEventChannel
+import net.mamoe.mirai.event.subscribeGroupMessages
+import top.limbang.mcsm.MCSMData.apiKey
+import top.limbang.mcsm.MCSMData.apiUrl
 
 object MCSM : KotlinPlugin(
     JvmPluginDescription(
@@ -29,7 +34,11 @@ object MCSM : KotlinPlugin(
         PermissionService.INSTANCE.register(permissionId("command.admin"), "管理员权限", parentPermission)
     }
     val PERMISSION_SERVER by lazy {
-        PermissionService.INSTANCE.register(permissionId("command.server"), "添加/删除/改名/启动/停止/重启/终止服务器权限", PERMISSION_ADMIN)
+        PermissionService.INSTANCE.register(
+            permissionId("command.server"),
+            "添加/删除/改名/启动/停止/重启/终止服务器权限",
+            PERMISSION_ADMIN
+        )
     }
     val PERMISSION_START by lazy {
         PermissionService.INSTANCE.register(permissionId("command.start"), "启动服务器权限", PERMISSION_SERVER)
@@ -46,6 +55,33 @@ object MCSM : KotlinPlugin(
         PERMISSION_ADMIN
         PERMISSION_SERVER
         PERMISSION_START
+
+        if (apiUrl.isEmpty()) return
+        val service = MCSMApi(apiUrl).get()
+        globalEventChannel().subscribeGroupMessages {
+            MCSMData.serverInstances.forEach { entity ->
+                startsWith(entity.key) {
+                    val server = entity.value
+                    val cmd =
+                        """tellraw @a [{"text":"[群]","color":"dark_red"},{"text":"<${sender.nameCardOrNick}>","color":"dark_green"},{"text":"$it"}]"""
+                    service.sendCommandInstance(server.uuid, server.daemonUUid, apiKey, cmd)
+                }
+            }
+        }
+    }
+
+    fun logToString(log: String, regex: Regex, index: Int, maxSize: Int): String {
+        val matchResults = regex.findAll(log).toList()
+        if (maxSize == 1) return matchResults.last().groupValues[index]
+        val results = if (matchResults.size > maxSize)
+            matchResults.subList(matchResults.size - maxSize, matchResults.size)
+        else
+            matchResults.subList(0, matchResults.size)
+        var message = ""
+        results.forEach { result ->
+            message += "${result.groupValues[index]}\n"
+        }
+        return message.substring(0, message.length - 1)
     }
 }
 

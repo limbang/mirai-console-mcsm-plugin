@@ -119,4 +119,17 @@ interface MCSMService {
         @Query("apikey") apikey: String,
         @Query("task_name") taskName : String
     ) : Boolean
+
+    /**
+     * ### 获取实例日志
+     * @param uuid 守护进程下的实例 UUID
+     * @param remoteUuid 守护进程 UUID
+     * @param apikey API 密钥
+     */
+    @GET("protected_instance/outputlog")
+    suspend fun getInstanceLog(
+        @Query("uuid") uuid: String,
+        @Query("remote_uuid") remoteUuid: String,
+        @Query("apikey") apikey: String
+    ) : String
 }
