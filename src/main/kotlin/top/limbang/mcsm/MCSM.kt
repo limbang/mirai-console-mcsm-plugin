@@ -9,6 +9,7 @@
 
 package top.limbang.mcsm
 
+import kotlinx.coroutines.delay
 import net.mamoe.mirai.console.command.CommandManager.INSTANCE.register
 import net.mamoe.mirai.console.command.CommandManager.INSTANCE.unregister
 import net.mamoe.mirai.console.permission.PermissionService
@@ -36,7 +37,7 @@ object MCSM : KotlinPlugin(
     val PERMISSION_SERVER by lazy {
         PermissionService.INSTANCE.register(
             permissionId("command.server"),
-            "添加/删除/改名/启动/停止/重启/终止服务器权限",
+            "CMD/添加/删除/改名/启动/停止/重启/终止服务器权限",
             PERMISSION_ADMIN
         )
     }
@@ -59,6 +60,7 @@ object MCSM : KotlinPlugin(
         if (apiUrl.isEmpty()) return
         val service = MCSMApi(apiUrl).get()
         globalEventChannel().subscribeGroupMessages {
+            // 发送消息到指定服务器
             MCSMData.serverInstances.forEach { entity ->
                 startsWith(entity.key) {
                     val server = entity.value
@@ -67,21 +69,28 @@ object MCSM : KotlinPlugin(
                     service.sendCommandInstance(server.uuid, server.daemonUUid, apiKey, cmd)
                 }
             }
+            // forge tps
+            startsWith("ftps") {
+                MCSMData.serverInstances[it]?.let { server ->
+                    service.sendCommandInstance(server.uuid, server.daemonUUid, apiKey, "forge tps")
+                    delay(1000)
+                    val log = service.getInstanceLog(server.uuid, server.daemonUUid, apiKey)
+                    val message = """minecraft/DedicatedServer]:\s(Overall.*)""".toRegex()
+                        .findAll(log).toList().last().groupValues[1]
+                    group.sendMessage(filterColorCode(message))
+                }
+            }
         }
     }
 
-    fun logToString(log: String, regex: Regex, index: Int, maxSize: Int): String {
-        val matchResults = regex.findAll(log).toList()
-        if (maxSize == 1) return matchResults.last().groupValues[index]
-        val results = if (matchResults.size > maxSize)
-            matchResults.subList(matchResults.size - maxSize, matchResults.size)
-        else
-            matchResults.subList(0, matchResults.size)
-        var message = ""
-        results.forEach { result ->
-            message += "${result.groupValues[index]}\n"
-        }
-        return message.substring(0, message.length - 1)
+    /**
+     * 过滤颜色代码
+     *
+     * @param log
+     * @return
+     */
+    fun filterColorCode(log: String): String {
+        return """\[[\d;]*m""".toRegex().replace(log, "")
     }
 }
 

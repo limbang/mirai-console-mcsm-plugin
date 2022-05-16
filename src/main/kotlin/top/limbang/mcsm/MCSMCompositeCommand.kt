@@ -9,6 +9,7 @@
 
 package top.limbang.mcsm
 
+import jdk.jfr.Description
 import net.mamoe.mirai.console.command.CommandSender
 import net.mamoe.mirai.console.command.CompositeCommand
 import net.mamoe.mirai.console.permission.Permission
@@ -38,16 +39,12 @@ object MCSMCompositeCommand : CompositeCommand(MCSM, "mcsm") {
     suspend fun CommandSender.daemonList() {
         if (!checkPermission(MCSM.PERMISSION_ADMIN)) return
         val service = getService(this) ?: return
-        runCatching { service.getAllDaemonList(apiKey) }.onSuccess {
-            it.forEach { daemon ->
-                var msg = "守护进程[${daemon.uuid}],实例如下:\n"
-                daemon.instances.forEach { instances ->
-                    msg += "${instances.instanceUuid} -> ${instances.config.nickname}\n"
-                }
-                sendMessage(msg)
+        service.getAllDaemonList(apiKey).forEach { daemon ->
+            var msg = "守护进程[${daemon.uuid}],实例如下:\n"
+            daemon.instances.forEach { instances ->
+                msg += "${instances.instanceUuid} -> ${instances.config.nickname}\n"
             }
-        }.onFailure {
-            sendMessage(it.message ?: "未知错误")
+            sendMessage(msg)
         }
     }
 
@@ -67,9 +64,9 @@ object MCSMCompositeCommand : CompositeCommand(MCSM, "mcsm") {
 
     @SubCommand("addServerInstances", "添加服务器实例")
     @Description("添加需要管理的服务器实例")
-    suspend fun CommandSender.addServerInstances(name: String, uuid: String, daemonUUid: String) {
+    suspend fun CommandSender.addServerInstances(name: String, uuid: String, daemonUuid: String) {
         if (!checkPermission(MCSM.PERMISSION_SERVER)) return
-        serverInstances[name] = ServerInstances(uuid, daemonUUid)
+        serverInstances[name] = ServerInstances(uuid, daemonUuid)
         sendMessage("[$name]添加成功.")
     }
 
@@ -99,11 +96,7 @@ object MCSMCompositeCommand : CompositeCommand(MCSM, "mcsm") {
         if (!serverCheck(name, MCSM.PERMISSION_START)) return
         serverInstances[name]?.let {
             val service = getService(this) ?: return
-            runCatching { service.openInstance(it.uuid, it.daemonUUid, apiKey) }.onSuccess {
-                sendMessage("开启实例[${it["instanceUuid"]}]成功")
-            }.onFailure {
-                sendMessage(it.localizedMessage)
-            }
+            sendMessage("开启实例[${service.openInstance(it.uuid, it.daemonUUid, apiKey)["instanceUuid"]}]成功")
         }
     }
 
@@ -113,11 +106,7 @@ object MCSMCompositeCommand : CompositeCommand(MCSM, "mcsm") {
         if (!serverCheck(name, MCSM.PERMISSION_SERVER)) return
         serverInstances[name]?.let {
             val service = getService(this) ?: return
-            runCatching { service.stopInstance(it.uuid, it.daemonUUid, apiKey) }.onSuccess {
-                sendMessage("关闭实例[${it["instanceUuid"]}]成功")
-            }.onFailure {
-                sendMessage(it.localizedMessage)
-            }
+            sendMessage("关闭实例[${service.stopInstance(it.uuid, it.daemonUUid, apiKey)["instanceUuid"]}]成功")
         }
     }
 
@@ -127,11 +116,7 @@ object MCSMCompositeCommand : CompositeCommand(MCSM, "mcsm") {
         if (!serverCheck(name, MCSM.PERMISSION_SERVER)) return
         serverInstances[name]?.let {
             val service = getService(this) ?: return
-            runCatching { service.killInstance(it.uuid, it.daemonUUid, apiKey) }.onSuccess {
-                sendMessage("终止实例[${it["instanceUuid"]}]成功")
-            }.onFailure {
-                sendMessage(it.localizedMessage)
-            }
+            sendMessage("终止实例[${service.killInstance(it.uuid, it.daemonUUid, apiKey)["instanceUuid"]}]成功")
         }
     }
 
@@ -141,11 +126,7 @@ object MCSMCompositeCommand : CompositeCommand(MCSM, "mcsm") {
         if (!serverCheck(name, MCSM.PERMISSION_SERVER)) return
         serverInstances[name]?.let {
             val service = getService(this) ?: return
-            runCatching { service.restartInstance(it.uuid, it.daemonUUid, apiKey) }.onSuccess {
-                sendMessage("重启实例[${it["instanceUuid"]}]成功")
-            }.onFailure {
-                sendMessage(it.localizedMessage)
-            }
+            sendMessage("重启实例[${service.restartInstance(it.uuid, it.daemonUUid, apiKey)["instanceUuid"]}]成功")
         }
     }
 
@@ -164,37 +145,23 @@ object MCSMCompositeCommand : CompositeCommand(MCSM, "mcsm") {
     @SubCommand("command", "cmd", "命令")
     @Description("向实例发送命令")
     suspend fun CommandSender.command(name: String, vararg command: String) {
-        if (!serverCheck(name, MCSM.PERMISSION_ADMIN)) return
+        if (!serverCheck(name, MCSM.PERMISSION_SERVER)) return
         serverInstances[name]?.let {
             val service = getService(this) ?: return
-            runCatching {
-                service.sendCommandInstance(it.uuid, it.daemonUUid, apiKey, spliceVararg(command))
-            }.onSuccess {
-                sendMessage("向实例[${it["instanceUuid"]}]发送命令成功")
-            }.onFailure {
-                sendMessage(it.localizedMessage)
-            }
+            sendMessage("向实例[${service.sendCommandInstance(it.uuid, it.daemonUUid, apiKey, spliceVararg(command))["instanceUuid"]}]发送命令成功")
         }
     }
 
     @SubCommand("createTasks", "ct", "创建任务")
     @Description("向实例创建计划任务")
     suspend fun CommandSender.createTasks(
-        name: String,
-        tasksName: String,
-        count: Int,
-        time: Int,
-        vararg command: String
+        name: String, tasksName: String, count: Int, time: Int, vararg command: String
     ) {
         if (!serverCheck(name, MCSM.PERMISSION_ADMIN)) return
         serverInstances[name]?.let {
             val service = getService(this) ?: return
             val tasks = Tasks(name = tasksName, count = count, time = time, payload = spliceVararg(command))
-            runCatching { service.createScheduledTasks(it.uuid, it.daemonUUid, apiKey, tasks) }.onSuccess {
-                sendMessage("创建计划任务[$tasksName]:$it")
-            }.onFailure {
-                sendMessage(it.localizedMessage)
-            }
+            sendMessage("创建计划任务[$tasksName]:${service.createScheduledTasks(it.uuid, it.daemonUUid, apiKey, tasks)}")
         }
     }
 
@@ -204,13 +171,7 @@ object MCSMCompositeCommand : CompositeCommand(MCSM, "mcsm") {
         if (!serverCheck(name, MCSM.PERMISSION_ADMIN)) return
         serverInstances[name]?.let {
             val service = getService(this) ?: return
-            runCatching {
-                service.deleteScheduledTasks(it.uuid, it.daemonUUid, apiKey, tasksName)
-            }.onSuccess {
-                sendMessage("删除计划任务[$tasksName]:$it")
-            }.onFailure {
-                sendMessage(it.localizedMessage)
-            }
+            sendMessage("删除计划任务[$tasksName]:${service.deleteScheduledTasks(it.uuid, it.daemonUUid, apiKey, tasksName)}")
         }
     }
 
@@ -223,20 +184,27 @@ object MCSMCompositeCommand : CompositeCommand(MCSM, "mcsm") {
      */
     @SubCommand("log", "获取日志消息")
     @Description("获取指定实例的日志")
-    suspend fun CommandSender.getInstanceLog(name: String, regex: String, index: Int) {
+    suspend fun CommandSender.getInstanceLog(name: String, regex: String, index: Int, maxSize: Int = 20) {
         if (!serverCheck(name, MCSM.PERMISSION_ADMIN)) return
         serverInstances[name]?.let {
             val service = getService(this) ?: return
-            runCatching {
-                service.getInstanceLog(it.uuid, it.daemonUUid, apiKey)
-            }.onSuccess {
-                sendMessage(MCSM.logToString(it,regex.toRegex(),index,20))
-            }.onFailure {
-                sendMessage(it.localizedMessage)
-            }
+            sendMessage(logToString(service.getInstanceLog(it.uuid, it.daemonUUid, apiKey), regex.toRegex(), index, maxSize))
         }
     }
 
+    private fun logToString(log: String, regex: Regex, index: Int, maxSize: Int): String {
+        val matchResults = regex.findAll(log).toList()
+        if (maxSize == 1) return matchResults.last().groupValues[index]
+        val results = if (matchResults.size > maxSize)
+            matchResults.subList(matchResults.size - maxSize, matchResults.size)
+        else
+            matchResults.subList(0, matchResults.size)
+        var message = ""
+        results.forEach { result ->
+            message += "${result.groupValues[index]}\n"
+        }
+        return message.substring(0, message.length - 1)
+    }
 
     private suspend fun CommandSender.serverCheck(name: String, permission: Permission): Boolean {
         if (!checkPermission(permission)) return false
