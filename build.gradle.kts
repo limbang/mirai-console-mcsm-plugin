@@ -7,7 +7,7 @@ plugins {
 }
 
 group = "top.limbang"
-version = "1.0.3"
+version = "1.0.4"
 
 repositories {
     maven("https://maven.aliyun.com/repository/public")
@@ -21,7 +21,7 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.3.2")
 
     testImplementation(kotlin("test"))
-    testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.6.0")
-    testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-debug:1.6.0")
+    testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.6.1")
+    testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-debug:1.6.1")
     testImplementation( "com.squareup.okhttp3:logging-interceptor:5.0.0-alpha.2")
 }

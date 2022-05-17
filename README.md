@@ -9,9 +9,19 @@
 <p>用于控制 <a href = "https://github.com/MCSManager/MCSManager">MCSM</a> api</p>
 </div>
 
+## 群里关键字触发
+ - 向实例发送消息:`服务器名称 消息` 例如 :`as 你们好`(向 as 实例发送 你们好)
+ - 获取服务器tps:`ftps 服务器名称` 例如 :`ftps as`(获取 as 实例的 TPS)
+
+## 服务器关键字触发
+ - 服务器向群发送消息：`群 消息` 例如： `群 你们好`(向监听了此服务器的群发送 你们好)
+
 ## 指令
 
 ```shell
+# 添加实例消息监听
+/mcsm addMessageMonitor <name>
+/mcsm 添加消息监听 <name>
 # 添加api管理
 /mcsm addApi <url> <key>    
 /mcsm 添加Api <url> <key>
@@ -54,5 +64,8 @@
 # 停止实例
 /mcsm stop <name>
 /mcsm 停止 <name>
+# 获取指定实例的日志  regex=正则  index=正则的字字符串  maxSize=最大显示多少（从后往前获取）
+/mcsm 获取日志消息 <name> <regex> <index> [maxSize]
+/mcsm log <name> <regex> <index> [maxSize]
 ```
 

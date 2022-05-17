@@ -20,6 +20,7 @@ object MCSMData : AutoSavePluginData("mcsm") {
     var apiUrl: String by value()
     var apiKey: String by value()
     var serverInstances : MutableMap<String,ServerInstances> by value()
+    var groupMonitorConfig : MutableMap<Long,MutableList<String>> by value()
 }
 
 @Serializable

@@ -9,13 +9,14 @@
 
 package top.limbang.mcsm
 
-import jdk.jfr.Description
 import net.mamoe.mirai.console.command.CommandSender
 import net.mamoe.mirai.console.command.CompositeCommand
+import net.mamoe.mirai.console.command.GroupAwareCommandSender
 import net.mamoe.mirai.console.permission.Permission
 import net.mamoe.mirai.console.permission.PermissionService.Companion.hasPermission
 import top.limbang.mcsm.MCSMData.apiKey
 import top.limbang.mcsm.MCSMData.apiUrl
+import top.limbang.mcsm.MCSMData.groupMonitorConfig
 import top.limbang.mcsm.MCSMData.serverInstances
 import top.limbang.mcsm.model.Tasks
 import top.limbang.mcsm.service.MCSMService
@@ -86,8 +87,26 @@ object MCSMCompositeCommand : CompositeCommand(MCSM, "mcsm") {
         if (server != null) {
             serverInstances.remove(name)
             serverInstances[newName] = server
+            groupMonitorConfig.forEach{
+                if(it.value.indexOf(name) != -1){
+                    it.value.remove(name)
+                    it.value.add(newName)
+                }
+            }
             sendMessage("原[$name]修改[$newName]成功.")
         } else sendMessage("没有找到[$name]实例.")
+    }
+
+    @SubCommand("addMessageMonitor", "添加消息监听")
+    @Description("添加实例消息监听")
+    suspend fun GroupAwareCommandSender.addMonitor(name: String) {
+        if (!checkPermission(MCSM.PERMISSION_ADMIN)) return
+        val groupMonitorConfig = groupMonitorConfig[group.id] ?: mutableListOf()
+        if(serverInstances[name] == null){ sendMessage("添加错误：没有[$name]服务器,检查后在试.");return }
+        if (groupMonitorConfig.indexOf(name) != -1) { sendMessage("添加错误：[$name]重复添加.");return }
+        groupMonitorConfig.add(name)
+        MCSMData.groupMonitorConfig[group.id] = groupMonitorConfig
+        sendMessage("群[${group.name}]监听[$name]消息成功,重启后生效.")
     }
 
     @SubCommand("start", "启动")
@@ -96,7 +115,9 @@ object MCSMCompositeCommand : CompositeCommand(MCSM, "mcsm") {
         if (!serverCheck(name, MCSM.PERMISSION_START)) return
         serverInstances[name]?.let {
             val service = getService(this) ?: return
-            sendMessage("开启实例[${service.openInstance(it.uuid, it.daemonUUid, apiKey)["instanceUuid"]}]成功")
+            runCatching { service.openInstance(it.uuid, it.daemonUUid, apiKey) }.onSuccess {
+                sendMessage("开启实例[${it["instanceUuid"]}]成功")
+            }.onFailure { sendMessage(it.localizedMessage) }
         }
     }
 
@@ -106,7 +127,9 @@ object MCSMCompositeCommand : CompositeCommand(MCSM, "mcsm") {
         if (!serverCheck(name, MCSM.PERMISSION_SERVER)) return
         serverInstances[name]?.let {
             val service = getService(this) ?: return
-            sendMessage("关闭实例[${service.stopInstance(it.uuid, it.daemonUUid, apiKey)["instanceUuid"]}]成功")
+            runCatching { service.stopInstance(it.uuid, it.daemonUUid, apiKey) }.onSuccess {
+                sendMessage("关闭实例[${it["instanceUuid"]}]成功")
+            }.onFailure { sendMessage(it.localizedMessage) }
         }
     }
 
@@ -116,7 +139,9 @@ object MCSMCompositeCommand : CompositeCommand(MCSM, "mcsm") {
         if (!serverCheck(name, MCSM.PERMISSION_SERVER)) return
         serverInstances[name]?.let {
             val service = getService(this) ?: return
-            sendMessage("终止实例[${service.killInstance(it.uuid, it.daemonUUid, apiKey)["instanceUuid"]}]成功")
+            runCatching { service.killInstance(it.uuid, it.daemonUUid, apiKey) }.onSuccess {
+                sendMessage("终止实例[${it["instanceUuid"]}]成功")
+            }.onFailure { sendMessage(it.localizedMessage) }
         }
     }
 
@@ -126,7 +151,9 @@ object MCSMCompositeCommand : CompositeCommand(MCSM, "mcsm") {
         if (!serverCheck(name, MCSM.PERMISSION_SERVER)) return
         serverInstances[name]?.let {
             val service = getService(this) ?: return
-            sendMessage("重启实例[${service.restartInstance(it.uuid, it.daemonUUid, apiKey)["instanceUuid"]}]成功")
+            runCatching { service.restartInstance(it.uuid, it.daemonUUid, apiKey) }.onSuccess {
+                sendMessage("重启实例[${it["instanceUuid"]}]成功")
+            }.onFailure { sendMessage(it.localizedMessage) }
         }
     }
 
@@ -148,7 +175,9 @@ object MCSMCompositeCommand : CompositeCommand(MCSM, "mcsm") {
         if (!serverCheck(name, MCSM.PERMISSION_SERVER)) return
         serverInstances[name]?.let {
             val service = getService(this) ?: return
-            sendMessage("向实例[${service.sendCommandInstance(it.uuid, it.daemonUUid, apiKey, spliceVararg(command))["instanceUuid"]}]发送命令成功")
+            runCatching { service.sendCommandInstance(it.uuid, it.daemonUUid, apiKey, spliceVararg(command)) }.onSuccess {
+                sendMessage("向实例[${it["instanceUuid"]}]发送命令成功")
+            }.onFailure { sendMessage(it.localizedMessage) }
         }
     }
 
@@ -161,7 +190,9 @@ object MCSMCompositeCommand : CompositeCommand(MCSM, "mcsm") {
         serverInstances[name]?.let {
             val service = getService(this) ?: return
             val tasks = Tasks(name = tasksName, count = count, time = time, payload = spliceVararg(command))
-            sendMessage("创建计划任务[$tasksName]:${service.createScheduledTasks(it.uuid, it.daemonUUid, apiKey, tasks)}")
+            runCatching { service.createScheduledTasks(it.uuid, it.daemonUUid, apiKey, tasks) }.onSuccess {
+                sendMessage("创建计划任务[$tasksName]:$it")
+            }.onFailure { sendMessage(it.localizedMessage) }
         }
     }
 
@@ -171,7 +202,9 @@ object MCSMCompositeCommand : CompositeCommand(MCSM, "mcsm") {
         if (!serverCheck(name, MCSM.PERMISSION_ADMIN)) return
         serverInstances[name]?.let {
             val service = getService(this) ?: return
-            sendMessage("删除计划任务[$tasksName]:${service.deleteScheduledTasks(it.uuid, it.daemonUUid, apiKey, tasksName)}")
+            runCatching { service.deleteScheduledTasks(it.uuid, it.daemonUUid, apiKey, tasksName) }.onSuccess {
+                sendMessage("删除计划任务[$tasksName]:$it")
+            }.onFailure { sendMessage(it.localizedMessage) }
         }
     }
 
@@ -188,7 +221,9 @@ object MCSMCompositeCommand : CompositeCommand(MCSM, "mcsm") {
         if (!serverCheck(name, MCSM.PERMISSION_ADMIN)) return
         serverInstances[name]?.let {
             val service = getService(this) ?: return
-            sendMessage(logToString(service.getInstanceLog(it.uuid, it.daemonUUid, apiKey), regex.toRegex(), index, maxSize))
+            runCatching { service.getInstanceLog(it.uuid, it.daemonUUid, apiKey) }.onSuccess {
+                sendMessage(logToString(it, regex.toRegex(), index, maxSize))
+            }.onFailure { sendMessage(it.localizedMessage) }
         }
     }
 
