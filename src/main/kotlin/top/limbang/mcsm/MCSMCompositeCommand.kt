@@ -11,15 +11,14 @@ package top.limbang.mcsm
 
 import net.mamoe.mirai.console.command.CommandSender
 import net.mamoe.mirai.console.command.CompositeCommand
-import net.mamoe.mirai.console.command.GroupAwareCommandSender
 import net.mamoe.mirai.console.permission.Permission
 import net.mamoe.mirai.console.permission.PermissionService.Companion.hasPermission
 import top.limbang.mcsm.MCSMData.apiKey
 import top.limbang.mcsm.MCSMData.apiUrl
-import top.limbang.mcsm.MCSMData.groupMonitorConfig
 import top.limbang.mcsm.MCSMData.serverInstances
 import top.limbang.mcsm.model.Tasks
 import top.limbang.mcsm.service.MCSMService
+import top.limbang.mcsm.utils.removeColorCodeLog
 
 
 object MCSMCompositeCommand : CompositeCommand(MCSM, "mcsm") {
@@ -87,26 +86,8 @@ object MCSMCompositeCommand : CompositeCommand(MCSM, "mcsm") {
         if (server != null) {
             serverInstances.remove(name)
             serverInstances[newName] = server
-            groupMonitorConfig.forEach{
-                if(it.value.indexOf(name) != -1){
-                    it.value.remove(name)
-                    it.value.add(newName)
-                }
-            }
             sendMessage("原[$name]修改[$newName]成功.")
         } else sendMessage("没有找到[$name]实例.")
-    }
-
-    @SubCommand("addMessageMonitor", "添加消息监听")
-    @Description("添加实例消息监听")
-    suspend fun GroupAwareCommandSender.addMonitor(name: String) {
-        if (!checkPermission(MCSM.PERMISSION_ADMIN)) return
-        val groupMonitorConfig = groupMonitorConfig[group.id] ?: mutableListOf()
-        if(serverInstances[name] == null){ sendMessage("添加错误：没有[$name]服务器,检查后在试.");return }
-        if (groupMonitorConfig.indexOf(name) != -1) { sendMessage("添加错误：[$name]重复添加.");return }
-        groupMonitorConfig.add(name)
-        MCSMData.groupMonitorConfig[group.id] = groupMonitorConfig
-        sendMessage("群[${group.name}]监听[$name]消息成功,重启后生效.")
     }
 
     @SubCommand("start", "启动")
@@ -222,7 +203,7 @@ object MCSMCompositeCommand : CompositeCommand(MCSM, "mcsm") {
         serverInstances[name]?.let {
             val service = getService(this) ?: return
             runCatching { service.getInstanceLog(it.uuid, it.daemonUUid, apiKey) }.onSuccess {
-                sendMessage(logToString(it, regex.toRegex(), index, maxSize))
+                sendMessage(logToString(it.removeColorCodeLog(), regex.toRegex(), index, maxSize))
             }.onFailure { sendMessage(it.localizedMessage) }
         }
     }

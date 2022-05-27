@@ -10,23 +10,21 @@
 package top.limbang.mcsm
 
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import net.mamoe.mirai.console.command.CommandManager.INSTANCE.register
 import net.mamoe.mirai.console.command.CommandManager.INSTANCE.unregister
+import net.mamoe.mirai.console.command.CommandSender.Companion.asMemberCommandSender
 import net.mamoe.mirai.console.permission.PermissionService
+import net.mamoe.mirai.console.permission.PermissionService.Companion.hasPermission
 import net.mamoe.mirai.console.plugin.jvm.JvmPluginDescription
 import net.mamoe.mirai.console.plugin.jvm.KotlinPlugin
 import net.mamoe.mirai.contact.nameCardOrNick
-import net.mamoe.mirai.event.events.BotOnlineEvent
 import net.mamoe.mirai.event.globalEventChannel
 import net.mamoe.mirai.event.subscribeGroupMessages
 import top.limbang.mcsm.MCSMData.apiKey
 import top.limbang.mcsm.MCSMData.apiUrl
 import top.limbang.mcsm.entity.Chat
-import top.limbang.mcsm.utils.CoroutineUpdateTask
-import top.limbang.mcsm.utils.removeColorCodeLog
 import top.limbang.mcsm.utils.toRemoveColorCodeMinecraftLog
 import java.time.LocalTime
 
@@ -54,11 +52,8 @@ object MCSM : KotlinPlugin(
         PermissionService.INSTANCE.register(permissionId("command.start"), "启动服务器权限", PERMISSION_SERVER)
     }
 
-    private val task by lazy { CoroutineUpdateTask() }
-
     override fun onDisable() {
         MCSMCompositeCommand.unregister()
-        task.cancel()
     }
 
     override fun onEnable() {
@@ -88,6 +83,15 @@ object MCSM : KotlinPlugin(
                     service.sendCommandInstance(server.uuid, server.daemonUUid, apiKey, cmd)
                 }
             }
+            // 对所有服务器发送通知
+            startsWith("通知") {
+                if (sender.asMemberCommandSender().permitteeId.hasPermission(PERMISSION_SERVER)) {
+                    val cmd = "title @a title ${Json.encodeToString(arrayListOf(Chat(it, color = "red")))}"
+                    MCSMData.serverInstances.forEach { entity ->
+                        service.sendCommandInstance(entity.value.uuid, entity.value.daemonUUid, apiKey, cmd)
+                    }
+                }
+            }
             // forge tps
             startsWith("ftps") { message ->
                 MCSMData.serverInstances[message]?.let { server ->
@@ -98,54 +102,18 @@ object MCSM : KotlinPlugin(
                     do {
                         delay(100)
                         val log = service.getInstanceLog(server.uuid, server.daemonUUid, apiKey)
-                        val minecraftLog = log.toRemoveColorCodeMinecraftLog()
-                            .filter { it.channels == "minecraft/DedicatedServer" }
-                            .last { it.message.indexOf("Overall") != -1 }
-                        if (minecraftLog.time >= time) {
-                            group.sendMessage(minecraftLog.message)
-                            isTps = true
+                        try {
+                            val minecraftLog = log.toRemoveColorCodeMinecraftLog()
+                                .filter { it.channels == "minecraft/DedicatedServer" }
+                                .last { it.message.indexOf("Overall") != -1 }
+                            if (minecraftLog.time >= time) {
+                                group.sendMessage(minecraftLog.message)
+                                isTps = true
+                            }
+                        } catch (e: NoSuchElementException) {
+                            continue
                         }
                     } while (!isTps)
-                }
-            }
-        }
-
-        globalEventChannel().subscribeOnce<BotOnlineEvent> {
-            var time = LocalTime.now()
-            task.scheduleUpdate(1000) {
-                MCSMData.serverInstances.forEach { entry ->
-                    // 检查是否有群订阅了此服务器,有就获取日志,没有直接返回
-                    var isGetLog = false
-                    MCSMData.groupMonitorConfig.forEach {
-                        if (it.value.indexOf(entry.key) != -1) isGetLog = true
-                    }
-                    if (!isGetLog) return@forEach
-                    launch {
-                        // 查询日志
-                        runCatching { service.getInstanceLog(entry.value.uuid, entry.value.daemonUUid, apiKey) }.onSuccess { log ->
-                            try {
-                                // 正则匹配
-                                val matchResult =
-                                    """\[(\d+):(\d+):(\d+)].*minecraft/DedicatedServer]:\s<(.*)>.*群(.*)""".toRegex().findAll(log).last().groupValues
-                                val newTime = LocalTime.of(matchResult[1].toInt(), matchResult[2].toInt(), matchResult[3].toInt(), time.nano)
-                                // 判断消息是否最新
-                                if (newTime >= time) {
-                                    // 如果群监听了此服务器就发送消息
-                                    MCSMData.groupMonitorConfig.forEach { groupMonitorConfig ->
-                                        if (groupMonitorConfig.value.indexOf(entry.key) != -1) {
-                                            bot.getGroup(groupMonitorConfig.key)
-                                                ?.sendMessage("[${entry.key}]${matchResult[4]}:${matchResult[5]}".removeColorCodeLog().trim())
-                                            time = LocalTime.now()
-                                        }
-                                    }
-                                }
-                            } catch (e: NoSuchElementException) {
-                                return@launch
-                            }
-                        }.onFailure {
-                            logger.error(it)
-                        }
-                    }
                 }
             }
         }

@@ -12,16 +12,10 @@
 ## 群里关键字触发
  - 向实例发送消息:`服务器名称 消息` 例如 :`as 你们好`(向 as 实例发送 你们好)
  - 获取服务器tps:`ftps 服务器名称` 例如 :`ftps as`(获取 as 实例的 TPS)
-
-## 服务器关键字触发
- - 服务器向群发送消息：`群 消息` 例如： `群 你们好`(向监听了此服务器的群发送 你们好)
-
+ - 通知所有服务器:`通知 消息` 例如 :`通知 服务器1分钟后维护,请下线等待！！！`(需要 `top.limbang.mcsm:command.server` 或以上权限)
 ## 指令
 
 ```shell
-# 添加实例消息监听
-/mcsm addMessageMonitor <name>
-/mcsm 添加消息监听 <name>
 # 添加api管理
 /mcsm addApi <url> <key>    
 /mcsm 添加Api <url> <key>
