@@ -210,6 +210,7 @@ object MCSMCompositeCommand : CompositeCommand(MCSM, "mcsm") {
 
     private fun logToString(log: String, regex: Regex, index: Int, maxSize: Int): String {
         val matchResults = regex.findAll(log).toList()
+        if (matchResults.isEmpty()) return "无匹配日志..."
         if (maxSize == 1) return matchResults.last().groupValues[index]
         val results = if (matchResults.size > maxSize)
             matchResults.subList(matchResults.size - maxSize, matchResults.size)
