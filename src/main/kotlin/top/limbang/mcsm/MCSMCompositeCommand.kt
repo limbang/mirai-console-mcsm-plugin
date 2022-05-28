@@ -9,6 +9,7 @@
 
 package top.limbang.mcsm
 
+import kotlinx.coroutines.delay
 import net.mamoe.mirai.console.command.CommandSender
 import net.mamoe.mirai.console.command.CompositeCommand
 import net.mamoe.mirai.console.permission.Permission
@@ -19,6 +20,8 @@ import top.limbang.mcsm.MCSMData.serverInstances
 import top.limbang.mcsm.model.Tasks
 import top.limbang.mcsm.service.MCSMService
 import top.limbang.mcsm.utils.removeColorCodeLog
+import top.limbang.mcsm.utils.toRemoveColorCodeMinecraftLog
+import java.time.LocalTime
 
 
 object MCSMCompositeCommand : CompositeCommand(MCSM, "mcsm") {
@@ -154,10 +157,18 @@ object MCSMCompositeCommand : CompositeCommand(MCSM, "mcsm") {
     @Description("向实例发送命令")
     suspend fun CommandSender.command(name: String, vararg command: String) {
         if (!serverCheck(name, MCSM.PERMISSION_SERVER)) return
-        serverInstances[name]?.let {
+        serverInstances[name]?.let { server ->
             val service = getService(this) ?: return
-            runCatching { service.sendCommandInstance(it.uuid, it.daemonUUid, apiKey, spliceVararg(command)) }.onSuccess {
-                sendMessage("向实例[${it["instanceUuid"]}]发送命令成功")
+            runCatching { service.sendCommandInstance(server.uuid, server.daemonUUid, apiKey, spliceVararg(command)) }.onSuccess {
+                val time = LocalTime.now().withNano(0)
+                delay(1000)
+                var message = ""
+                service.getInstanceLog(server.uuid, server.daemonUUid, apiKey).toRemoveColorCodeMinecraftLog()
+                    .filter { it.channels == "minecraft/DedicatedServer" }
+                    .filter { it.time >= time }
+                    .filter { !"<.*>".toRegex().containsMatchIn(it.message) }
+                    .forEach { message += "${it.message}\n" }
+                sendMessage(message.substring(0, message.length - 1))
             }.onFailure { sendMessage(it.localizedMessage) }
         }
     }
@@ -250,4 +261,3 @@ object MCSMCompositeCommand : CompositeCommand(MCSM, "mcsm") {
         return service
     }
 }
-
