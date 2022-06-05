@@ -1,10 +1,6 @@
 # User-specific stuff
 .idea/
 
-*.iml
-*.ipr
-*.iws
-
 # IntelliJ
 out/
 # mpeltonen/sbt-idea plugin
@@ -119,7 +115,7 @@ run/
 
 
 # Local Test Launch point
-src/test/kotlin/RunTerminal.kt
+#src/test/kotlin/RunTerminal.kt
 
 # Mirai console files with direct bootstrap
 /config
@@ -129,6 +125,3 @@ src/test/kotlin/RunTerminal.kt
 
 # Local Test Launch Point working directory
 /debug-sandbox
-/local.properties
-
-!.idea/copyright/*
