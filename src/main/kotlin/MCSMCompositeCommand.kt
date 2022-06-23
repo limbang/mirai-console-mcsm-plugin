@@ -14,13 +14,18 @@ import net.mamoe.mirai.console.command.CommandSender
 import net.mamoe.mirai.console.command.CompositeCommand
 import net.mamoe.mirai.console.permission.Permission
 import net.mamoe.mirai.console.permission.PermissionService.Companion.hasPermission
+import net.mamoe.mirai.console.plugin.id
+import net.mamoe.mirai.event.broadcast
 import top.limbang.mcsm.MCSMData.apiKey
 import top.limbang.mcsm.MCSMData.apiUrl
+import top.limbang.mcsm.MCSMData.isPluginLinkage
+import top.limbang.mcsm.MCSMData.isTps
 import top.limbang.mcsm.MCSMData.serverInstances
 import top.limbang.mcsm.model.Tasks
 import top.limbang.mcsm.service.MCSMService
 import top.limbang.mcsm.utils.removeColorCodeLog
 import top.limbang.mcsm.utils.toRemoveColorCodeMinecraftLog
+import top.limbang.mirai.event.RenameEvent
 import java.time.LocalTime
 
 
@@ -85,12 +90,20 @@ object MCSMCompositeCommand : CompositeCommand(MCSM, "mcsm") {
     @Description("重新命名服务器实例")
     suspend fun CommandSender.rename(name: String, newName: String) {
         if (!checkPermission(MCSM.PERMISSION_SERVER)) return
+        if (renameInstance(name, newName,false)) sendMessage("原[$name]修改[$newName]成功.")
+        else sendMessage("没有找到[$name]实例.")
+    }
+
+    internal suspend fun renameInstance(name: String, newName: String,isEvent:Boolean): Boolean {
         val server = serverInstances[name]
-        if (server != null) {
+        return if (server != null) {
             serverInstances.remove(name)
             serverInstances[newName] = server
-            sendMessage("原[$name]修改[$newName]成功.")
-        } else sendMessage("没有找到[$name]实例.")
+            // 发布改名广播
+            // 不是事件就发布改名广播
+            if (!isEvent) RenameEvent(MCSM.id, name, newName).broadcast()
+            true
+        } else false
     }
 
     @SubCommand("start", "启动")
@@ -259,5 +272,21 @@ object MCSMCompositeCommand : CompositeCommand(MCSM, "mcsm") {
         }
         service = service ?: MCSMApi(apiUrl).get()
         return service
+    }
+
+    @SubCommand
+    @Description("设置插件联动")
+    suspend fun CommandSender.setPluginLinkage(value: Boolean) {
+        if (!checkPermission(MCSM.PERMISSION_ADMIN)) return
+        isPluginLinkage = value
+        sendMessage("插件联动:$isPluginLinkage")
+    }
+
+    @SubCommand
+    @Description("设置tps功能启用")
+    suspend fun CommandSender.setTps(value: Boolean) {
+        if (!checkPermission(MCSM.PERMISSION_ADMIN)) return
+        isTps = value
+        sendMessage("tps功能:$isTps")
     }
 }

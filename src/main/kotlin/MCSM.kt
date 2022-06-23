@@ -17,25 +17,31 @@ import net.mamoe.mirai.console.command.CommandManager.INSTANCE.unregister
 import net.mamoe.mirai.console.command.CommandSender.Companion.asMemberCommandSender
 import net.mamoe.mirai.console.permission.PermissionService
 import net.mamoe.mirai.console.permission.PermissionService.Companion.hasPermission
+import net.mamoe.mirai.console.plugin.id
 import net.mamoe.mirai.console.plugin.jvm.JvmPluginDescription
 import net.mamoe.mirai.console.plugin.jvm.KotlinPlugin
 import net.mamoe.mirai.contact.nameCardOrNick
 import net.mamoe.mirai.event.globalEventChannel
 import net.mamoe.mirai.event.subscribeGroupMessages
+import top.limbang.mcsm.MCSMCompositeCommand.renameInstance
 import top.limbang.mcsm.MCSMData.apiKey
 import top.limbang.mcsm.MCSMData.apiUrl
+import top.limbang.mcsm.MCSMData.isPluginLinkage
+import top.limbang.mcsm.MCSMData.isTps
 import top.limbang.mcsm.entity.Chat
 import top.limbang.mcsm.utils.toRemoveColorCodeMinecraftLog
+import top.limbang.mirai.event.RenameEvent
 import java.time.LocalTime
 
 object MCSM : KotlinPlugin(
     JvmPluginDescription(
         id = "top.limbang.mcsm",
-        name = "mcsm",
-        version = "1.0.5",
+        name = "MCSManager API",
+        version = "1.0.7",
     ) {
         author("limbang")
-        info("mcsm api 插件")
+        info("MCSManager api 插件")
+        dependsOn("top.limbang.general-plugin-interface")
     }
 ) {
 
@@ -94,7 +100,8 @@ object MCSM : KotlinPlugin(
                 }
             }
             // forge tps
-            startsWith("ftps") { message ->
+            startsWith("tps") { message ->
+                if (!isTps) return@startsWith
                 MCSMData.serverInstances[message]?.let { server ->
                     service.sendCommandInstance(server.uuid, server.daemonUUid, apiKey, "forge tps")
                     // 获取当前时间,忽略毫秒
@@ -118,6 +125,14 @@ object MCSM : KotlinPlugin(
                 }
             }
         }
+        // 监听改名事件
+        globalEventChannel().subscribeAlways<RenameEvent> {
+            logger.info("RenameEvent: pluginId = $pluginId oldName = $oldName newName = $newName")
+            if (!isPluginLinkage) return@subscribeAlways
+            if (pluginId == MCSM.id) return@subscribeAlways
+            renameInstance(oldName, newName,true)
+        }
+
     }
 
 

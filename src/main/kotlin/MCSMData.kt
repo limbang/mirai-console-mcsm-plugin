@@ -11,17 +11,35 @@ package top.limbang.mcsm
 
 import kotlinx.serialization.Serializable
 import net.mamoe.mirai.console.data.AutoSavePluginData
+import net.mamoe.mirai.console.data.ValueDescription
 import net.mamoe.mirai.console.data.value
 
 /**
  * ### 插件配置
  */
 object MCSMData : AutoSavePluginData("mcsm") {
+    @ValueDescription("mcsm 接口地址")
     var apiUrl: String by value()
+
+    @ValueDescription("mcsm 接口key")
     var apiKey: String by value()
-    var serverInstances : MutableMap<String,ServerInstances> by value()
+
+    @ValueDescription("存放服务器实例")
+    var serverInstances: MutableMap<String, ServerInstances> by value()
+
+    @ValueDescription("插件联动,默认打开")
+    var isPluginLinkage: Boolean by value(true)
+
+    @ValueDescription("tps查看,默认打开")
+    var isTps: Boolean by value(true)
 }
 
+/**
+ * ## 服务器实例
+ *
+ * @property uuid 服务器uuid
+ * @property daemonUUid 守护进程uuid
+ */
 @Serializable
 data class ServerInstances(
     val uuid: String,

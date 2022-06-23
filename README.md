@@ -9,6 +9,8 @@
 <p>用于控制 <a href = "https://github.com/MCSManager/MCSManager">MCSM</a> api</p>
 </div>
 
+需要前置插件[mirai-plugin-general-interface](https://github.com/limbang/mirai-plugin-general-interface)用来支持事件
+
 ## 群里关键字触发
  - 向实例发送消息:`服务器名称 消息` 例如 :`as 你们好`(向 as 实例发送 你们好)
  - 获取服务器tps:`ftps 服务器名称` 例如 :`ftps as`(获取 as 实例的 TPS)
@@ -61,5 +63,9 @@
 # 获取指定实例的日志  regex=正则  index=正则的字字符串  maxSize=最大显示多少（从后往前获取）
 /mcsm 获取日志消息 <name> <regex> <index> [maxSize]
 /mcsm log <name> <regex> <index> [maxSize]
+# 设置插件联动 true false  默认为:true 
+/mcsm setPluginLinkage <value> 
+# 设置tps功能启用 
+/mcsm setTps <value>    
 ```
 
