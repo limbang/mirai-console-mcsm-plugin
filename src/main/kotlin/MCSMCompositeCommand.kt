@@ -90,11 +90,11 @@ object MCSMCompositeCommand : CompositeCommand(MCSM, "mcsm") {
     @Description("重新命名服务器实例")
     suspend fun CommandSender.rename(name: String, newName: String) {
         if (!checkPermission(MCSM.PERMISSION_SERVER)) return
-        if (renameInstance(name, newName,false)) sendMessage("原[$name]修改[$newName]成功.")
+        if (renameInstance(name, newName, false)) sendMessage("原[$name]修改[$newName]成功.")
         else sendMessage("没有找到[$name]实例.")
     }
 
-    internal suspend fun renameInstance(name: String, newName: String,isEvent:Boolean): Boolean {
+    internal suspend fun renameInstance(name: String, newName: String, isEvent: Boolean): Boolean {
         val server = serverInstances[name]
         return if (server != null) {
             serverInstances.remove(name)
@@ -114,7 +114,18 @@ object MCSMCompositeCommand : CompositeCommand(MCSM, "mcsm") {
             val service = getService(this) ?: return
             runCatching { service.openInstance(it.uuid, it.daemonUUid, apiKey) }.onSuccess {
                 sendMessage("开启实例[${it["instanceUuid"]}]成功")
-            }.onFailure { sendMessage(it.localizedMessage) }
+            }.onFailure {
+                if (it.localizedMessage == "实例未处于关闭状态，无法再进行启动") {
+                    sendMessage("实例未处于关闭状态,尝试获取在线人数请稍等...")
+                    val result = service.sendCommand(name, "list")
+                    if (result.isNotEmpty()){
+                        sendMessage("$result\n服务器未卡死,如果是tps低等问题请联系管理员重启.")
+                        return
+                    }
+                    sendMessage("开始强行停止服务器,请在服务器强行停止成功后在发送启动命令.")
+                    stop(name)
+                }
+            }
         }
     }
 
@@ -170,20 +181,26 @@ object MCSMCompositeCommand : CompositeCommand(MCSM, "mcsm") {
     @Description("向实例发送命令")
     suspend fun CommandSender.command(name: String, vararg command: String) {
         if (!serverCheck(name, MCSM.PERMISSION_SERVER)) return
+        val service = getService(this) ?: return
+        val result = service.sendCommand(name, spliceVararg(command))
+        if (result.isNotEmpty()) sendMessage(result)
+    }
+
+    private suspend fun MCSMService.sendCommand(name: String, command: String): String {
         serverInstances[name]?.let { server ->
-            val service = getService(this) ?: return
-            runCatching { service.sendCommandInstance(server.uuid, server.daemonUUid, apiKey, spliceVararg(command)) }.onSuccess {
+            runCatching { sendCommandInstance(server.uuid, server.daemonUUid, apiKey, command) }.onSuccess {
                 val time = LocalTime.now().withNano(0)
                 delay(1000)
                 var message = ""
-                service.getInstanceLog(server.uuid, server.daemonUUid, apiKey).toRemoveColorCodeMinecraftLog()
+                getInstanceLog(server.uuid, server.daemonUUid, apiKey).toRemoveColorCodeMinecraftLog()
                     .filter { it.channels == "minecraft/DedicatedServer" }
-                    .filter { it.time >= time }
+                    .filter { it.time >= time && it.time.hour == time.hour && it.time.minute == time.minute }
                     .filter { !"<.*>".toRegex().containsMatchIn(it.message) }
                     .forEach { message += "${it.message}\n" }
-                sendMessage(message.substring(0, message.length - 1))
-            }.onFailure { sendMessage(it.localizedMessage) }
+                return if (message.isNotEmpty()) message.substring(0, message.length - 1) else message
+            }.onFailure { return it.localizedMessage }
         }
+        return ""
     }
 
     @SubCommand("createTasks", "ct", "创建任务")
@@ -260,7 +277,7 @@ object MCSMCompositeCommand : CompositeCommand(MCSM, "mcsm") {
         return if (hasPermission(permission)) {
             true
         } else {
-            sendMessage("你没有 ${permission.id} 权限.")
+            sendMessage("你没有 ${permission.description}")
             false
         }
     }

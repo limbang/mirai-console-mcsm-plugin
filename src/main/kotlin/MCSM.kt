@@ -37,7 +37,7 @@ object MCSM : KotlinPlugin(
     JvmPluginDescription(
         id = "top.limbang.mcsm",
         name = "MCSManager API",
-        version = "1.0.7",
+        version = "1.0.8",
     ) {
         author("limbang")
         info("MCSManager api 插件")
@@ -51,7 +51,7 @@ object MCSM : KotlinPlugin(
     val PERMISSION_SERVER by lazy {
         PermissionService.INSTANCE.register(
             permissionId("command.server"),
-            "CMD/添加/删除/改名/启动/停止/重启/终止服务器权限",
+            "CMD/添加/删除/改名/启动/停止/重启或终止服务器权限",
             PERMISSION_ADMIN
         )
     }
