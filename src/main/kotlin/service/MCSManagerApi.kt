@@ -16,7 +16,7 @@ import top.limbang.mcsm.model.Tasks
 /**
  * ### Minecraft服务器管理器服务
  */
-interface MCSMService {
+interface MCSManagerApi {
 
     /**
      * ### 获取所有守护进程列表

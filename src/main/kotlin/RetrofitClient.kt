@@ -15,10 +15,10 @@ import okhttp3.OkHttpClient
 import retrofit2.Retrofit
 import top.limbang.mcsm.converter.toConverterFactory
 import top.limbang.mcsm.interceptor.StatusInterceptor
-import top.limbang.mcsm.service.MCSMService
+import top.limbang.mcsm.service.MCSManagerApi
 import java.util.concurrent.TimeUnit
 
-class MCSMApi(
+class RetrofitClient(
     apiUrl: String,
     httpLoggingInterceptor: Interceptor? = null,
     format: Json = Json {
@@ -41,22 +41,21 @@ class MCSMApi(
     }
 
     /**
-     * ### 创建 Minecraft服务器管理器 服务
+     * ### 创建 Retrofit 实例
      */
-    private val minecraftServerManagerService by lazy {
-        val retrofit = Retrofit.Builder()
+    private val instance by lazy {
+        Retrofit.Builder()
             .baseUrl(apiUrl)
             .addConverterFactory(format.toConverterFactory())
             .client(okHttpClient)
             .build()
-        retrofit.create(MCSMService::class.java)
     }
 
 
     /**
-     * ### 获取 Minecraft服务器管理器 服务
+     * ### 获取 MCSManager api
      */
-    fun get(): MCSMService {
-        return minecraftServerManagerService
+    fun getMCSManagerApi(): MCSManagerApi {
+        return instance.create(MCSManagerApi::class.java)
     }
 }

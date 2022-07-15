@@ -23,10 +23,10 @@ import net.mamoe.mirai.console.plugin.jvm.KotlinPlugin
 import net.mamoe.mirai.contact.nameCardOrNick
 import net.mamoe.mirai.event.globalEventChannel
 import net.mamoe.mirai.event.subscribeGroupMessages
+import top.limbang.mcsm.MCSMCompositeCommand.api
+import top.limbang.mcsm.MCSMCompositeCommand.isNotSetApiKey
 import top.limbang.mcsm.MCSMCompositeCommand.renameInstance
 import top.limbang.mcsm.MCSMData.apiKey
-import top.limbang.mcsm.MCSMData.apiUrl
-import top.limbang.mcsm.MCSMData.isPluginLinkage
 import top.limbang.mcsm.MCSMData.isTps
 import top.limbang.mcsm.entity.Chat
 import top.limbang.mcsm.utils.toRemoveColorCodeMinecraftLog
@@ -41,9 +41,18 @@ object MCSM : KotlinPlugin(
     ) {
         author("limbang")
         info("MCSManager api 插件")
-        dependsOn("top.limbang.general-plugin-interface")
+        dependsOn("top.limbang.general-plugin-interface", true)
     }
 ) {
+    /** 是否加载通用插件接口 */
+    val isLoadGeneralPluginInterface: Boolean = try {
+        Class.forName("top.limbang.mirai.GeneralPluginInterface")
+        true
+    } catch (e: Exception) {
+        logger.info("未加载通用插件接口,limbang插件系列改名无法同步.")
+        logger.info("前往 https://github.com/limbang/mirai-plugin-general-interface/releases 下载")
+        false
+    }
 
     val PERMISSION_ADMIN by lazy {
         PermissionService.INSTANCE.register(permissionId("command.admin"), "管理员权限", parentPermission)
@@ -71,8 +80,6 @@ object MCSM : KotlinPlugin(
         PERMISSION_SERVER
         PERMISSION_START
 
-        if (apiUrl.isEmpty()) return
-        val service = MCSMApi(apiUrl).get()
         globalEventChannel().subscribeGroupMessages {
             // 发送消息到指定服务器
             MCSMData.serverInstances.forEach { entity ->
@@ -87,7 +94,8 @@ object MCSM : KotlinPlugin(
                             )
                         )
                     }"
-                    service.sendCommandInstance(server.uuid, server.daemonUUid, apiKey, cmd)
+                    if (isNotSetApiKey()) return@startsWith
+                    api.sendCommandInstance(server.uuid, server.daemonUUid, apiKey, cmd)
                 }
             }
             // 对所有服务器发送通知
@@ -95,7 +103,8 @@ object MCSM : KotlinPlugin(
                 if (sender.asMemberCommandSender().permitteeId.hasPermission(PERMISSION_SERVER)) {
                     val cmd = "title @a title ${Json.encodeToString(arrayListOf(Chat(it, color = "red")))}"
                     MCSMData.serverInstances.forEach { entity ->
-                        service.sendCommandInstance(entity.value.uuid, entity.value.daemonUUid, apiKey, cmd)
+                        if (isNotSetApiKey()) return@startsWith
+                        api.sendCommandInstance(entity.value.uuid, entity.value.daemonUUid, apiKey, cmd)
                     }
                 }
             }
@@ -103,13 +112,14 @@ object MCSM : KotlinPlugin(
             startsWith("tps") { message ->
                 if (!isTps) return@startsWith
                 MCSMData.serverInstances[message]?.let { server ->
-                    service.sendCommandInstance(server.uuid, server.daemonUUid, apiKey, "forge tps")
+                    if (isNotSetApiKey()) return@startsWith
+                    api.sendCommandInstance(server.uuid, server.daemonUUid, apiKey, "forge tps")
                     // 获取当前时间,忽略毫秒
                     val time = LocalTime.now().withNano(0)
                     var isTps = false
                     do {
                         delay(100)
-                        val log = service.getInstanceLog(server.uuid, server.daemonUUid, apiKey)
+                        val log = api.getInstanceLog(server.uuid, server.daemonUUid, apiKey)
                         try {
                             val minecraftLog = log.toRemoveColorCodeMinecraftLog()
                                 .filter { it.channels == "minecraft/DedicatedServer" }
@@ -125,16 +135,15 @@ object MCSM : KotlinPlugin(
                 }
             }
         }
+
+        if (!isLoadGeneralPluginInterface) return
         // 监听改名事件
         globalEventChannel().subscribeAlways<RenameEvent> {
             logger.info("RenameEvent: pluginId = $pluginId oldName = $oldName newName = $newName")
-            if (!isPluginLinkage) return@subscribeAlways
             if (pluginId == MCSM.id) return@subscribeAlways
-            renameInstance(oldName, newName,true)
+            renameInstance(oldName, newName, true)
         }
-
     }
-
 
 }
 

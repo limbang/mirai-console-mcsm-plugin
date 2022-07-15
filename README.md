@@ -9,7 +9,7 @@
 <p>用于控制 <a href = "https://github.com/MCSManager/MCSManager">MCSM</a> api</p>
 </div>
 
-需要前置插件[mirai-plugin-general-interface](https://github.com/limbang/mirai-plugin-general-interface)用来支持事件
+可选前置插件[mirai-plugin-general-interface](https://github.com/limbang/mirai-plugin-general-interface)用来支持同步事件
 
 ## 群里关键字触发
  - 向实例发送消息:`服务器名称 消息` 例如 :`as 你们好`(向 as 实例发送 你们好)

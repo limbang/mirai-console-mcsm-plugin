@@ -27,9 +27,6 @@ object MCSMData : AutoSavePluginData("mcsm") {
     @ValueDescription("存放服务器实例")
     var serverInstances: MutableMap<String, ServerInstances> by value()
 
-    @ValueDescription("插件联动,默认打开")
-    var isPluginLinkage: Boolean by value(true)
-
     @ValueDescription("tps查看,默认打开")
     var isTps: Boolean by value(true)
 }
