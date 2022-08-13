@@ -227,6 +227,37 @@ object MCSMCompositeCommand : CompositeCommand(MCSM, "mcsm") {
         if (result.isNotEmpty()) sendMessage(result)
     }
 
+
+    @SubCommand("spark")
+    @Description("向实例发送spark命令")
+    suspend fun CommandSender.spark(name: String) {
+        if (!serverCheck(name, MCSM.PERMISSION_SERVER)) return
+        serverInstances[name]?.let { server ->
+            runCatching { api.sendCommandInstance(server.uuid, server.daemonUUid, apiKey, "spark profiler --threads * --timeout 30") }.onSuccess {
+                val time = LocalTime.now().withNano(0)
+                delay(1000)
+                val result = api.getInstanceLog(server.uuid, server.daemonUUid, apiKey)
+                    .toRemoveColorCodeMinecraftLog()
+                    .filter { it.channels == "minecraft/DedicatedServer" }
+                    .filter { it.time >= time && it.time.hour == time.hour && it.time.minute == time.minute }
+                    .filter { "Initializing".toRegex().containsMatchIn(it.message) }
+                if (result.isEmpty()) {
+                    sendMessage("未安装 spark 模组")
+                    return
+                }
+                sendMessage("正在初始化 Spark 分析器,35秒后返回结果...")
+                delay(35000)
+                val sparkResult = api.getInstanceLog(server.uuid, server.daemonUUid, apiKey).toRemoveColorCodeMinecraftLog()
+                    .filter { it.channels == "minecraft/DedicatedServer" }
+                    .filter { it.time >= time }
+                    .last { "https".toRegex().containsMatchIn(it.message) }
+                sendMessage(sparkResult.message)
+            }.onFailure {
+                sendMessage(it.localizedMessage)
+            }
+        }
+    }
+
     private suspend fun MCSManagerApi.sendCommand(name: String, command: String): String {
         serverInstances[name]?.let { server ->
             runCatching { sendCommandInstance(server.uuid, server.daemonUUid, apiKey, command) }.onSuccess {
