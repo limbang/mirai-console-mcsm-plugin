@@ -26,7 +26,7 @@ fun String.removeColorCodeLog(): String {
  */
 fun String.toMinecraftLog(): List<MinecraftLog> {
     val minecraftLogList = mutableListOf<MinecraftLog>()
-    """\[(\d+):(\d+):(\d+)]\s\[[a-zA-Z\s]+/([A-Z]+)]\s\[([\S/]+)]:\s(.*)""".toRegex().findAll(this).forEach {
+    """\[(\d+):(\d+):(\d+)]\s\[[a-zA-Z0-9-.\s]+/([A-Z]+)]\s\[([\S/]+)]:\s(.*)""".toRegex().findAll(this).forEach {
         minecraftLogList.add(
             MinecraftLog(
                 LocalTime.of(it.groupValues[1].toInt(), it.groupValues[2].toInt(), it.groupValues[3].toInt()),
