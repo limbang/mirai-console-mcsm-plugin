@@ -12,8 +12,6 @@ package top.limbang.mcsm
 import kotlinx.coroutines.delay
 import net.mamoe.mirai.console.command.CommandSender
 import net.mamoe.mirai.console.command.CompositeCommand
-import net.mamoe.mirai.console.permission.Permission
-import net.mamoe.mirai.console.permission.PermissionService.Companion.hasPermission
 import net.mamoe.mirai.console.plugin.id
 import net.mamoe.mirai.event.broadcast
 import top.limbang.mcsm.MCSM.isLoadGeneralPluginInterface
@@ -33,10 +31,9 @@ object MCSMCompositeCommand : CompositeCommand(MCSM, "mcsm") {
 
     val api = RetrofitClient(apiUrl).getMCSManagerApi()
 
-    @SubCommand("addApi", "添加Api")
+    @SubCommand("addApi")
     @Description("添加api管理")
-    suspend fun CommandSender.add(url: String, key: String) {
-        if (!checkPermission(MCSM.PERMISSION_ADMIN)) return
+    suspend fun CommandSender.addApi(url: String, key: String) {
         apiUrl = url
         apiKey = key
         sendMessage("[$name]添加成功,请重启.")
@@ -48,33 +45,12 @@ object MCSMCompositeCommand : CompositeCommand(MCSM, "mcsm") {
     fun isNotSetApiKey() = apiUrl.isEmpty() || apiKey.isEmpty()
 
     /**
-     * 检查权限
-     *
-     * @param permission
-     * @return
-     */
-    private suspend fun CommandSender.checkPermission(permission: Permission): Boolean {
-        if (isNotSetApiKey()) {
-            sendMessage("未设置 MCSManager Api 或 key")
-            return false
-        }
-        return if (hasPermission(permission)) {
-            true
-        } else {
-            sendMessage("你没有 ${permission.description}")
-            false
-        }
-    }
-
-    /**
-     * 检测服务器和权限
+     * 检查服务器是否存在
      *
      * @param name
-     * @param permission
      * @return
      */
-    private suspend fun CommandSender.serverCheck(name: String, permission: Permission): Boolean {
-        if (!checkPermission(permission)) return false
+    private suspend fun CommandSender.serverCheck(name: String): Boolean {
         if (serverInstances[name] == null) {
             sendMessage("${name}不存在，请查询后输入")
             return false
@@ -82,10 +58,23 @@ object MCSMCompositeCommand : CompositeCommand(MCSM, "mcsm") {
         return true
     }
 
-    @SubCommand("daemonList", "守护进程列表")
+    /**
+     * 检查API是否设置
+     *
+     * @return
+     */
+    private suspend fun CommandSender.apiCheck(): Boolean {
+        if (isNotSetApiKey()) {
+            sendMessage("未设置 MCSManager Api 或 key")
+            return true
+        }
+        return false
+    }
+
+    @SubCommand("daemonList")
     @Description("获取守护进程列表")
     suspend fun CommandSender.daemonList() {
-        if (!checkPermission(MCSM.PERMISSION_ADMIN)) return
+        if (apiCheck()) return
         api.getAllDaemonList(apiKey).forEach { daemon ->
             var msg = "守护进程[${daemon.uuid}],实例如下:\n"
             daemon.instances.forEach { instances ->
@@ -95,7 +84,7 @@ object MCSMCompositeCommand : CompositeCommand(MCSM, "mcsm") {
         }
     }
 
-    @SubCommand("list", "列表")
+    @SubCommand("list")
     @Description("获取列表")
     suspend fun CommandSender.list() {
         if (serverInstances.isEmpty()) {
@@ -109,26 +98,25 @@ object MCSMCompositeCommand : CompositeCommand(MCSM, "mcsm") {
         sendMessage(list)
     }
 
-    @SubCommand("addServerInstances", "添加服务器实例")
+    @SubCommand("add")
     @Description("添加需要管理的服务器实例")
     suspend fun CommandSender.addServerInstances(name: String, uuid: String, daemonUuid: String) {
-        if (!checkPermission(MCSM.PERMISSION_SERVER)) return
         serverInstances[name] = ServerInstances(uuid, daemonUuid)
         sendMessage("[$name]添加成功.")
     }
 
-    @SubCommand("deleteServerInstances", "删除服务器实例")
+    @SubCommand("delete")
     @Description("删除需要管理的服务器实例")
     suspend fun CommandSender.deleteServerInstances(name: String) {
-        if (!checkPermission(MCSM.PERMISSION_SERVER)) return
+        if (!serverCheck(name)) return
         serverInstances.remove(name) ?: return
         sendMessage("[$name]删除成功.")
     }
 
-    @SubCommand("rename", "重命名服务器实例")
+    @SubCommand("rename")
     @Description("重新命名服务器实例")
     suspend fun CommandSender.rename(name: String, newName: String) {
-        if (!checkPermission(MCSM.PERMISSION_SERVER)) return
+        if (!serverCheck(name)) return
         if (renameInstance(name, newName, false)) sendMessage("原[$name]修改[$newName]成功.")
         else sendMessage("没有找到[$name]实例.")
     }
@@ -144,40 +132,27 @@ object MCSMCompositeCommand : CompositeCommand(MCSM, "mcsm") {
                 // 不是事件就发布改名广播
                 if (!isEvent) RenameEvent(MCSM.id, name, newName).broadcast()
             }
-
             true
         } else false
     }
 
-    @SubCommand("start", "启动")
+    @SubCommand("start")
     @Description("启动实例")
     suspend fun CommandSender.start(name: String) {
-        if (!serverCheck(name, MCSM.PERMISSION_START)) return
+        if (apiCheck()) return
+        if (!serverCheck(name)) return
         serverInstances[name]?.let { instance ->
             runCatching { api.openInstance(instance.uuid, instance.daemonUUid, apiKey) }.onSuccess {
                 sendMessage("开启实例[${it["instanceUuid"]}]成功")
-            }.onFailure {
-                if (it.localizedMessage == "实例未处于关闭状态，无法再进行启动") {
-                    sendMessage("实例未处于关闭状态,尝试获取在线人数请稍等...")
-                    val result = api.sendCommand(name, "list")
-                    if (result.isNotEmpty()) {
-                        sendMessage("$result\n服务器未卡死,如果是tps低等问题请联系管理员重启.")
-                        return
-                    }
-                    sendMessage("获取在线人数失败,开始强行停止服务器...")
-                    runCatching { api.killInstance(instance.uuid, instance.daemonUUid, apiKey) }.onSuccess {
-                        sendMessage("强行停止服务器成功,开始启动服务器...")
-                        start(name)
-                    }
-                }
-            }
+            }.onFailure { sendMessage(it.localizedMessage) }
         }
     }
 
-    @SubCommand("stop", "停止")
+    @SubCommand("stop")
     @Description("停止实例")
     suspend fun CommandSender.stop(name: String) {
-        if (!serverCheck(name, MCSM.PERMISSION_SERVER)) return
+        if (apiCheck()) return
+        if (!serverCheck(name)) return
         serverInstances[name]?.let {
             runCatching { api.stopInstance(it.uuid, it.daemonUUid, apiKey) }.onSuccess {
                 sendMessage("关闭实例[${it["instanceUuid"]}]成功")
@@ -185,10 +160,11 @@ object MCSMCompositeCommand : CompositeCommand(MCSM, "mcsm") {
         }
     }
 
-    @SubCommand("kill", "终止")
+    @SubCommand("kill")
     @Description("终止实例")
     suspend fun CommandSender.kill(name: String) {
-        if (!serverCheck(name, MCSM.PERMISSION_SERVER)) return
+        if (apiCheck()) return
+        if (!serverCheck(name)) return
         serverInstances[name]?.let {
             runCatching { api.killInstance(it.uuid, it.daemonUUid, apiKey) }.onSuccess {
                 sendMessage("终止实例[${it["instanceUuid"]}]成功")
@@ -196,10 +172,11 @@ object MCSMCompositeCommand : CompositeCommand(MCSM, "mcsm") {
         }
     }
 
-    @SubCommand("restart", "重启")
+    @SubCommand("restart")
     @Description("重启实例")
     suspend fun CommandSender.restart(name: String) {
-        if (!serverCheck(name, MCSM.PERMISSION_SERVER)) return
+        if (apiCheck()) return
+        if (!serverCheck(name)) return
         serverInstances[name]?.let {
             runCatching { api.restartInstance(it.uuid, it.daemonUUid, apiKey) }.onSuccess {
                 sendMessage("重启实例[${it["instanceUuid"]}]成功")
@@ -216,13 +193,14 @@ object MCSMCompositeCommand : CompositeCommand(MCSM, "mcsm") {
     private fun spliceVararg(arg: Array<out String>): String {
         var str = ""
         arg.forEach { str += "$it " }
-        return str
+        return str.trim()
     }
 
-    @SubCommand("command", "cmd", "命令")
+    @SubCommand("cmd")
     @Description("向实例发送命令")
     suspend fun CommandSender.command(name: String, vararg command: String) {
-        if (!serverCheck(name, MCSM.PERMISSION_SERVER)) return
+        if (apiCheck()) return
+        if (!serverCheck(name)) return
         val result = api.sendCommand(name, spliceVararg(command))
         if (result.isNotEmpty()) sendMessage(result)
     }
@@ -231,7 +209,8 @@ object MCSMCompositeCommand : CompositeCommand(MCSM, "mcsm") {
     @SubCommand("spark")
     @Description("向实例发送spark命令")
     suspend fun CommandSender.spark(name: String) {
-        if (!serverCheck(name, MCSM.PERMISSION_SERVER)) return
+        if (apiCheck()) return
+        if (!serverCheck(name)) return
         serverInstances[name]?.let { server ->
             runCatching { api.sendCommandInstance(server.uuid, server.daemonUUid, apiKey, "spark profiler --threads * --timeout 30") }.onSuccess {
                 val time = LocalTime.now().withNano(0)
@@ -258,7 +237,7 @@ object MCSMCompositeCommand : CompositeCommand(MCSM, "mcsm") {
         }
     }
 
-    private suspend fun MCSManagerApi.sendCommand(name: String, command: String): String {
+    internal suspend fun MCSManagerApi.sendCommand(name: String, command: String): String {
         serverInstances[name]?.let { server ->
             runCatching { sendCommandInstance(server.uuid, server.daemonUUid, apiKey, command) }.onSuccess {
                 val time = LocalTime.now().withNano(0)
@@ -275,12 +254,13 @@ object MCSMCompositeCommand : CompositeCommand(MCSM, "mcsm") {
         return ""
     }
 
-    @SubCommand("createTasks", "ct", "创建任务")
+    @SubCommand("ct")
     @Description("向实例创建计划任务")
     suspend fun CommandSender.createTasks(
         name: String, tasksName: String, count: Int, time: Int, vararg command: String
     ) {
-        if (!serverCheck(name, MCSM.PERMISSION_ADMIN)) return
+        if (apiCheck()) return
+        if (!serverCheck(name)) return
         serverInstances[name]?.let {
             val tasks = Tasks(name = tasksName, count = count, time = time, payload = spliceVararg(command))
             runCatching { api.createScheduledTasks(it.uuid, it.daemonUUid, apiKey, tasks) }.onSuccess {
@@ -289,10 +269,11 @@ object MCSMCompositeCommand : CompositeCommand(MCSM, "mcsm") {
         }
     }
 
-    @SubCommand("deleteTasks", "dt", "删除任务")
+    @SubCommand("dt")
     @Description("向实例删除计划任务")
     suspend fun CommandSender.deleteTasks(name: String, tasksName: String) {
-        if (!serverCheck(name, MCSM.PERMISSION_ADMIN)) return
+        if (apiCheck()) return
+        if (!serverCheck(name)) return
         serverInstances[name]?.let {
             runCatching { api.deleteScheduledTasks(it.uuid, it.daemonUUid, apiKey, tasksName) }.onSuccess {
                 sendMessage("删除计划任务[$tasksName]:$it")
@@ -307,10 +288,11 @@ object MCSMCompositeCommand : CompositeCommand(MCSM, "mcsm") {
      * @param regex 匹配的正则
      * @param index 匹配组的第几个
      */
-    @SubCommand("log", "获取日志消息")
+    @SubCommand("log")
     @Description("获取指定实例的日志")
     suspend fun CommandSender.getInstanceLog(name: String, regex: String, index: Int, maxSize: Int = 20) {
-        if (!serverCheck(name, MCSM.PERMISSION_ADMIN)) return
+        if (apiCheck()) return
+        if (!serverCheck(name)) return
         serverInstances[name]?.let {
             runCatching { api.getInstanceLog(it.uuid, it.daemonUUid, apiKey) }.onSuccess {
                 sendMessage(logToString(it.removeColorCodeLog(), regex.toRegex(), index, maxSize))
@@ -336,7 +318,6 @@ object MCSMCompositeCommand : CompositeCommand(MCSM, "mcsm") {
     @SubCommand
     @Description("设置tps功能启用")
     suspend fun CommandSender.setTps(value: Boolean) {
-        if (!checkPermission(MCSM.PERMISSION_ADMIN)) return
         isTps = value
         sendMessage("tps功能:$isTps")
     }

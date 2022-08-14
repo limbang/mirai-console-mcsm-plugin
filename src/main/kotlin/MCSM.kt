@@ -15,17 +15,18 @@ import kotlinx.serialization.json.Json
 import net.mamoe.mirai.console.command.CommandManager.INSTANCE.register
 import net.mamoe.mirai.console.command.CommandManager.INSTANCE.unregister
 import net.mamoe.mirai.console.command.CommandSender.Companion.asMemberCommandSender
-import net.mamoe.mirai.console.permission.PermissionService
 import net.mamoe.mirai.console.permission.PermissionService.Companion.hasPermission
 import net.mamoe.mirai.console.plugin.id
 import net.mamoe.mirai.console.plugin.jvm.JvmPluginDescription
 import net.mamoe.mirai.console.plugin.jvm.KotlinPlugin
 import net.mamoe.mirai.contact.nameCardOrNick
+import net.mamoe.mirai.event.events.GroupMessageEvent
 import net.mamoe.mirai.event.globalEventChannel
 import net.mamoe.mirai.event.subscribeGroupMessages
 import top.limbang.mcsm.MCSMCompositeCommand.api
 import top.limbang.mcsm.MCSMCompositeCommand.isNotSetApiKey
 import top.limbang.mcsm.MCSMCompositeCommand.renameInstance
+import top.limbang.mcsm.MCSMCompositeCommand.sendCommand
 import top.limbang.mcsm.MCSMData.apiKey
 import top.limbang.mcsm.MCSMData.isTps
 import top.limbang.mcsm.entity.Chat
@@ -37,7 +38,7 @@ object MCSM : KotlinPlugin(
     JvmPluginDescription(
         id = "top.limbang.mcsm",
         name = "MCSManager API",
-        version = "1.0.8",
+        version = "1.0.9",
     ) {
         author("limbang")
         info("MCSManager api 插件")
@@ -54,20 +55,6 @@ object MCSM : KotlinPlugin(
         false
     }
 
-    val PERMISSION_ADMIN by lazy {
-        PermissionService.INSTANCE.register(permissionId("command.admin"), "管理员权限", parentPermission)
-    }
-    val PERMISSION_SERVER by lazy {
-        PermissionService.INSTANCE.register(
-            permissionId("command.server"),
-            "CMD/添加/删除/改名/启动/停止/重启或终止服务器权限",
-            PERMISSION_ADMIN
-        )
-    }
-    val PERMISSION_START by lazy {
-        PermissionService.INSTANCE.register(permissionId("command.start"), "启动服务器权限", PERMISSION_SERVER)
-    }
-
     override fun onDisable() {
         MCSMCompositeCommand.unregister()
     }
@@ -75,10 +62,6 @@ object MCSM : KotlinPlugin(
     override fun onEnable() {
         MCSMData.reload()
         MCSMCompositeCommand.register()
-        // 初始化权限注册
-        PERMISSION_ADMIN
-        PERMISSION_SERVER
-        PERMISSION_START
 
         globalEventChannel().subscribeGroupMessages {
             // 发送消息到指定服务器
@@ -100,7 +83,7 @@ object MCSM : KotlinPlugin(
             }
             // 对所有服务器发送通知
             startsWith("通知") {
-                if (sender.asMemberCommandSender().permitteeId.hasPermission(PERMISSION_SERVER)) {
+                if (sender.asMemberCommandSender().permitteeId.hasPermission(MCSM.parentPermission)) {
                     val cmd = "title @a title ${Json.encodeToString(arrayListOf(Chat(it, color = "red")))}"
                     MCSMData.serverInstances.forEach { entity ->
                         if (isNotSetApiKey()) return@startsWith
@@ -109,31 +92,9 @@ object MCSM : KotlinPlugin(
                 }
             }
             // forge tps
-            startsWith("tps") { message ->
-                if (!isTps) return@startsWith
-                MCSMData.serverInstances[message]?.let { server ->
-                    if (isNotSetApiKey()) return@startsWith
-                    api.sendCommandInstance(server.uuid, server.daemonUUid, apiKey, "forge tps")
-                    // 获取当前时间,忽略毫秒
-                    val time = LocalTime.now().withNano(0)
-                    var isTps = false
-                    do {
-                        delay(100)
-                        val log = api.getInstanceLog(server.uuid, server.daemonUUid, apiKey)
-                        try {
-                            val minecraftLog = log.toRemoveColorCodeMinecraftLog()
-                                .filter { it.channels == "minecraft/DedicatedServer" }
-                                .last { it.message.indexOf("Overall") != -1 }
-                            if (minecraftLog.time >= time) {
-                                group.sendMessage(minecraftLog.message)
-                                isTps = true
-                            }
-                        } catch (e: NoSuchElementException) {
-                            continue
-                        }
-                    } while (!isTps)
-                }
-            }
+            startsWith("tps") { forgeTps(it) }
+            // 启动服务器
+            startsWith("启动") { startServer(it) }
         }
 
         if (!isLoadGeneralPluginInterface) return
@@ -142,6 +103,55 @@ object MCSM : KotlinPlugin(
             logger.info("RenameEvent: pluginId = $pluginId oldName = $oldName newName = $newName")
             if (pluginId == MCSM.id) return@subscribeAlways
             renameInstance(oldName, newName, true)
+        }
+    }
+
+    private suspend fun GroupMessageEvent.forgeTps(name: String) {
+        if (!isTps) return
+        MCSMData.serverInstances[name]?.let { server ->
+            if (isNotSetApiKey()) return
+            api.sendCommandInstance(server.uuid, server.daemonUUid, apiKey, "forge tps")
+            // 获取当前时间,忽略毫秒
+            val time = LocalTime.now().withNano(0)
+            var getSuccess = false
+            do {
+                delay(500)
+                val log = api.getInstanceLog(server.uuid, server.daemonUUid, apiKey)
+                try {
+                    val minecraftLog = log.toRemoveColorCodeMinecraftLog()
+                        .filter { it.channels == "minecraft/DedicatedServer" }
+                        .last { it.message.indexOf("Overall") != -1 }
+                    if (minecraftLog.time >= time) {
+                        group.sendMessage(minecraftLog.message)
+                        getSuccess = true
+                    }
+                } catch (e: NoSuchElementException) {
+                    continue
+                }
+            } while (!getSuccess)
+        }
+    }
+
+    private suspend fun GroupMessageEvent.startServer(name: String) {
+        MCSMData.serverInstances[name]?.let { server ->
+            if (isNotSetApiKey()) return
+            runCatching { api.openInstance(server.uuid, server.daemonUUid, apiKey) }.onSuccess {
+                group.sendMessage("[$name]启动成功")
+            }.onFailure {
+                if (it.localizedMessage == "实例未处于关闭状态，无法再进行启动") {
+                    group.sendMessage("检测到服务器正在运行中,尝试获取在线人数请稍等...")
+                    val result = api.sendCommand(name, "list")
+                    if (result.isNotEmpty()) {
+                        group.sendMessage("$result\n服务器未卡死,如果是tps低等问题请联系管理员重启.")
+                        return
+                    }
+                    group.sendMessage("获取在线人数失败,开始强行停止服务器...")
+                    runCatching { api.killInstance(server.uuid, server.daemonUUid, apiKey) }.onSuccess {
+                        group.sendMessage("强行停止服务器成功,开始启动服务器...")
+                        startServer(name)
+                    }
+                }
+            }
         }
     }
 
