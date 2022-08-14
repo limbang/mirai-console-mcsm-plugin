@@ -133,6 +133,8 @@ object MCSM : KotlinPlugin(
     }
 
     private suspend fun GroupMessageEvent.startServer(name: String) {
+        // 黑名单判断
+        if(MCSMData.blacklist.any { it.id == sender.id }) return
         MCSMData.serverInstances[name]?.let { server ->
             if (isNotSetApiKey()) return
             runCatching { api.openInstance(server.uuid, server.daemonUUid, apiKey) }.onSuccess {

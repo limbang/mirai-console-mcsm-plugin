@@ -13,6 +13,7 @@ import kotlinx.serialization.Serializable
 import net.mamoe.mirai.console.data.AutoSavePluginData
 import net.mamoe.mirai.console.data.ValueDescription
 import net.mamoe.mirai.console.data.value
+import net.mamoe.mirai.contact.Member
 
 /**
  * ### 插件配置
@@ -29,6 +30,9 @@ object MCSMData : AutoSavePluginData("mcsm") {
 
     @ValueDescription("tps查看,默认打开")
     var isTps: Boolean by value(true)
+
+    @ValueDescription("黑名单")
+    val blacklist : MutableList<Member> by value()
 }
 
 /**

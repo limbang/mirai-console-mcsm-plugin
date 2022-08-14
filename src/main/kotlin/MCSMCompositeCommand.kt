@@ -13,6 +13,8 @@ import kotlinx.coroutines.delay
 import net.mamoe.mirai.console.command.CommandSender
 import net.mamoe.mirai.console.command.CompositeCommand
 import net.mamoe.mirai.console.plugin.id
+import net.mamoe.mirai.contact.Member
+import net.mamoe.mirai.contact.nameCardOrNick
 import net.mamoe.mirai.event.broadcast
 import top.limbang.mcsm.MCSM.isLoadGeneralPluginInterface
 import top.limbang.mcsm.MCSMData.apiKey
@@ -321,4 +323,19 @@ object MCSMCompositeCommand : CompositeCommand(MCSM, "mcsm") {
         isTps = value
         sendMessage("tps功能:$isTps")
     }
+
+    @SubCommand("addBlacklist", "添加黑名单")
+    @Description("添加到黑名单")
+    suspend fun CommandSender.addBlacklist(member: Member) {
+        if (MCSMData.blacklist.add(member)) sendMessage("添加${member.nameCardOrNick}到黑名单")
+        else sendMessage("添加黑名单失败")
+    }
+
+    @SubCommand("removeBlacklist", "移除黑名单")
+    @Description("移除到黑名单")
+    suspend fun CommandSender.removeBlacklist(member: Member) {
+        if (MCSMData.blacklist.remove(member)) sendMessage("将${member.nameCardOrNick}移除黑名单")
+        else sendMessage("移除黑名单失败")
+    }
+
 }
