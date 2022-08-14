@@ -226,13 +226,15 @@ object MCSMCompositeCommand : CompositeCommand(MCSM, "mcsm") {
                     sendMessage("未安装 spark 模组")
                     return
                 }
-                sendMessage("正在初始化 Spark 分析器,35秒后返回结果...")
-                delay(35000)
-                val sparkResult = api.getInstanceLog(server.uuid, server.daemonUUid, apiKey).toRemoveColorCodeMinecraftLog()
-                    .filter { it.channels == "minecraft/DedicatedServer" }
-                    .filter { it.time >= time }
-                    .last { "https".toRegex().containsMatchIn(it.message) }
-                sendMessage(sparkResult.message)
+                sendMessage("正在初始化 Spark 分析器,30秒后返回结果...")
+                do {
+                    delay(1000)
+                    val sparkResult = api.getInstanceLog(server.uuid, server.daemonUUid, apiKey).toRemoveColorCodeMinecraftLog()
+                        .filter { it.channels == "minecraft/DedicatedServer" }
+                        .filter { it.time >= time }
+                        .filter { "https".toRegex().containsMatchIn(it.message) }
+                    if (sparkResult.isNotEmpty()) sendMessage(sparkResult.last().message)
+                } while (sparkResult.isEmpty())
             }.onFailure {
                 sendMessage(it.localizedMessage)
             }
