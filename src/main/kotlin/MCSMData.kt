@@ -32,7 +32,7 @@ object MCSMData : AutoSavePluginData("mcsm") {
     var isTps: Boolean by value(true)
 
     @ValueDescription("黑名单")
-    val blacklist : MutableList<Member> by value()
+    val blacklist : MutableSet<Member> by value()
 }
 
 /**
