@@ -31,7 +31,7 @@ import java.time.LocalTime
 
 object MCSMCompositeCommand : CompositeCommand(MCSM, "mcsm") {
 
-    val api = RetrofitClient(apiUrl).getMCSManagerApi()
+    val api by lazy { RetrofitClient(apiUrl).getMCSManagerApi() }
 
     @SubCommand("addApi")
     @Description("添加api管理")
