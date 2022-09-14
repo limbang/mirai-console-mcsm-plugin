@@ -14,6 +14,6 @@ import kotlinx.serialization.Serializable
 @Serializable
 data class MCSMResponse<T>(
     val status: Int,
-    val data: T,
+    val data: T?,
     val time: Long
 )

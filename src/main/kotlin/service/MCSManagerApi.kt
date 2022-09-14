@@ -11,6 +11,7 @@ package top.limbang.mcsm.service
 
 import retrofit2.http.*
 import top.limbang.mcsm.model.Daemon
+import top.limbang.mcsm.model.MCSMResponse
 import top.limbang.mcsm.model.Tasks
 
 /**
@@ -23,7 +24,7 @@ interface MCSManagerApi {
      * @param apikey API 密钥
      */
     @GET("service/remote_services")
-    suspend fun getAllDaemonList(@Query("apikey") apikey: String): List<Daemon>
+    suspend fun getAllDaemonList(@Query("apikey") apikey: String): MCSMResponse<List<Daemon>>
 
     /**
      * ### 开启实例
@@ -36,7 +37,7 @@ interface MCSManagerApi {
         @Query("uuid") uuid: String,
         @Query("remote_uuid") remoteUuid: String,
         @Query("apikey") apikey: String
-    ) : Map<String, String>
+    ): MCSMResponse<Map<String, String>>
 
     /**
      * ### 关闭实例
@@ -49,7 +50,7 @@ interface MCSManagerApi {
         @Query("uuid") uuid: String,
         @Query("remote_uuid") remoteUuid: String,
         @Query("apikey") apikey: String
-    ) : Map<String, String>
+    ): MCSMResponse<Map<String, String>>
 
     /**
      * ### 终止实例
@@ -62,7 +63,7 @@ interface MCSManagerApi {
         @Query("uuid") uuid: String,
         @Query("remote_uuid") remoteUuid: String,
         @Query("apikey") apikey: String
-    ) : Map<String, String>
+    ): MCSMResponse<Map<String, String>>
 
     /**
      * ### 重启实例
@@ -75,7 +76,7 @@ interface MCSManagerApi {
         @Query("uuid") uuid: String,
         @Query("remote_uuid") remoteUuid: String,
         @Query("apikey") apikey: String
-    ) : Map<String, String>
+    ): MCSMResponse<Map<String, String>>
 
     /**
      * ### 发送命令到应用实例
@@ -90,7 +91,7 @@ interface MCSManagerApi {
         @Query("remote_uuid") remoteUuid: String,
         @Query("apikey") apikey: String,
         @Query("command") command: String
-    ) : Map<String, String>
+    ): MCSMResponse<Unit>
 
     /**
      * ### 创建计划任务
@@ -103,8 +104,8 @@ interface MCSManagerApi {
         @Query("uuid") uuid: String,
         @Query("remote_uuid") remoteUuid: String,
         @Query("apikey") apikey: String,
-        @Body tasks : Tasks
-    ) : Boolean
+        @Body tasks: Tasks
+    ): MCSMResponse<Boolean>
 
     /**
      * ### 创建计划任务
@@ -117,8 +118,8 @@ interface MCSManagerApi {
         @Query("uuid") uuid: String,
         @Query("remote_uuid") remoteUuid: String,
         @Query("apikey") apikey: String,
-        @Query("task_name") taskName : String
-    ) : Boolean
+        @Query("task_name") taskName: String
+    ): MCSMResponse<Boolean>
 
     /**
      * ### 获取实例日志
@@ -131,5 +132,5 @@ interface MCSManagerApi {
         @Query("uuid") uuid: String,
         @Query("remote_uuid") remoteUuid: String,
         @Query("apikey") apikey: String
-    ) : String
+    ): MCSMResponse<String>
 }

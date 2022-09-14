@@ -14,11 +14,9 @@ package top.limbang.mcsm.interceptor
 import kotlinx.serialization.SerializationException
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.json.Json
-import kotlinx.serialization.json.jsonObject
 import okhttp3.Interceptor
 import okhttp3.Response
 import okhttp3.ResponseBody
-import okhttp3.ResponseBody.Companion.toResponseBody
 import top.limbang.mcsm.exception.MCSMException
 import top.limbang.mcsm.model.MCSMResponse
 import java.nio.charset.Charset
@@ -31,17 +29,13 @@ class StatusInterceptor : Interceptor {
         // HTTP 不在 200-300 的错误状态码处理
         if (response.isSuccessful.not()) {
             val errorMessage = try {
-                Json.decodeFromString<MCSMResponse<String>>(getResponseBody(response.body!!)).data
+                Json.decodeFromString<MCSMResponse<String>>(getResponseBody(response.body!!)).data!!
             } catch (e: SerializationException) {
                 "序列化错误,服务器异常."
             }
             throw MCSMException(errorMessage)
         }
-
-        val bodyJsonElement = Json.parseToJsonElement(getResponseBody(response.body!!))
-        return response.newBuilder()
-            .body(bodyJsonElement.jsonObject["data"].toString().toResponseBody())
-            .build()
+        return response
     }
 
     private fun getResponseBody(responseBody: ResponseBody): String {

@@ -26,7 +26,9 @@ import top.limbang.mcsm.service.MCSManagerApi
 import top.limbang.mcsm.utils.removeColorCodeLog
 import top.limbang.mcsm.utils.toRemoveColorCodeMinecraftLog
 import top.limbang.mirai.event.RenameEvent
+import java.time.Instant
 import java.time.LocalTime
+import java.time.ZoneId
 
 
 object MCSMCompositeCommand : CompositeCommand(MCSM, "mcsm") {
@@ -77,13 +79,15 @@ object MCSMCompositeCommand : CompositeCommand(MCSM, "mcsm") {
     @Description("获取守护进程列表")
     suspend fun CommandSender.daemonList() {
         if (apiCheck()) return
-        api.getAllDaemonList(apiKey).forEach { daemon ->
-            var msg = "守护进程[${daemon.uuid}],实例如下:\n"
-            daemon.instances.forEach { instances ->
-                msg += "${instances.instanceUuid} -> ${instances.config.nickname}\n"
+        runCatching { api.getAllDaemonList(apiKey) }.onSuccess {
+            it.data!!.forEach { daemon ->
+                var msg = "守护进程[${daemon.uuid}],实例如下:\n"
+                daemon.instances.forEach { instances ->
+                    msg += "${instances.instanceUuid} -> ${instances.config.nickname}\n"
+                }
+                sendMessage(msg)
             }
-            sendMessage(msg)
-        }
+        }.onFailure { sendMessage(it.localizedMessage) }
     }
 
     @SubCommand("list")
@@ -145,8 +149,10 @@ object MCSMCompositeCommand : CompositeCommand(MCSM, "mcsm") {
         if (!serverCheck(name)) return
         serverInstances[name]?.let { instance ->
             runCatching { api.openInstance(instance.uuid, instance.daemonUUid, apiKey) }.onSuccess {
-                sendMessage("开启实例[${it["instanceUuid"]}]成功")
-            }.onFailure { sendMessage(it.localizedMessage) }
+                sendMessage("开启实例[${it.data!!["instanceUuid"]}]成功")
+            }.onFailure {
+                sendMessage(it.localizedMessage)
+            }
         }
     }
 
@@ -157,7 +163,7 @@ object MCSMCompositeCommand : CompositeCommand(MCSM, "mcsm") {
         if (!serverCheck(name)) return
         serverInstances[name]?.let {
             runCatching { api.stopInstance(it.uuid, it.daemonUUid, apiKey) }.onSuccess {
-                sendMessage("关闭实例[${it["instanceUuid"]}]成功")
+                sendMessage("关闭实例[${it.data!!["instanceUuid"]}]成功")
             }.onFailure { sendMessage(it.localizedMessage) }
         }
     }
@@ -169,7 +175,7 @@ object MCSMCompositeCommand : CompositeCommand(MCSM, "mcsm") {
         if (!serverCheck(name)) return
         serverInstances[name]?.let {
             runCatching { api.killInstance(it.uuid, it.daemonUUid, apiKey) }.onSuccess {
-                sendMessage("终止实例[${it["instanceUuid"]}]成功")
+                sendMessage("终止实例[${it.data!!["instanceUuid"]}]成功")
             }.onFailure { sendMessage(it.localizedMessage) }
         }
     }
@@ -181,7 +187,7 @@ object MCSMCompositeCommand : CompositeCommand(MCSM, "mcsm") {
         if (!serverCheck(name)) return
         serverInstances[name]?.let {
             runCatching { api.restartInstance(it.uuid, it.daemonUUid, apiKey) }.onSuccess {
-                sendMessage("重启实例[${it["instanceUuid"]}]成功")
+                sendMessage("重启实例[${it.data!!["instanceUuid"]}]成功")
             }.onFailure { sendMessage(it.localizedMessage) }
         }
     }
@@ -217,7 +223,7 @@ object MCSMCompositeCommand : CompositeCommand(MCSM, "mcsm") {
             runCatching { api.sendCommandInstance(server.uuid, server.daemonUUid, apiKey, "spark profiler --threads * --timeout 30") }.onSuccess {
                 val time = LocalTime.now().withNano(0)
                 delay(1000)
-                val result = api.getInstanceLog(server.uuid, server.daemonUUid, apiKey)
+                val result = api.getInstanceLog(server.uuid, server.daemonUUid, apiKey).data!!
                     .toRemoveColorCodeMinecraftLog()
                     .filter { it.channels == "minecraft/DedicatedServer" }
                     .filter { it.time >= time && it.time.hour == time.hour && it.time.minute == time.minute }
@@ -229,7 +235,8 @@ object MCSMCompositeCommand : CompositeCommand(MCSM, "mcsm") {
                 sendMessage("正在初始化 Spark 分析器,30秒后返回结果...")
                 do {
                     delay(1000)
-                    val sparkResult = api.getInstanceLog(server.uuid, server.daemonUUid, apiKey).toRemoveColorCodeMinecraftLog()
+                    val sparkResult = api.getInstanceLog(server.uuid, server.daemonUUid, apiKey).data!!
+                        .toRemoveColorCodeMinecraftLog()
                         .filter { it.channels == "minecraft/DedicatedServer" }
                         .filter { it.time >= time }
                         .filter { "https".toRegex().containsMatchIn(it.message) }
@@ -243,11 +250,13 @@ object MCSMCompositeCommand : CompositeCommand(MCSM, "mcsm") {
 
     internal suspend fun MCSManagerApi.sendCommand(name: String, command: String): String {
         serverInstances[name]?.let { server ->
-            runCatching { sendCommandInstance(server.uuid, server.daemonUUid, apiKey, command) }.onSuccess {
-                val time = LocalTime.now().withNano(0)
+            runCatching { sendCommandInstance(server.uuid, server.daemonUUid, apiKey, command) }.onSuccess { response ->
+                // 获取命令发送成功的时间戳以默认时区转成时间
+                val time = Instant.ofEpochMilli(response.time).atZone(ZoneId.systemDefault()).toLocalTime().withNano(0)
                 delay(1000)
                 var message = ""
-                getInstanceLog(server.uuid, server.daemonUUid, apiKey).toRemoveColorCodeMinecraftLog()
+                getInstanceLog(server.uuid, server.daemonUUid, apiKey).data!!
+                    .toRemoveColorCodeMinecraftLog()
                     .filter { it.channels == "minecraft/DedicatedServer" }
                     .filter { it.time >= time && it.time.hour == time.hour && it.time.minute == time.minute }
                     .filter { !"<.*>".toRegex().containsMatchIn(it.message) }
@@ -299,7 +308,7 @@ object MCSMCompositeCommand : CompositeCommand(MCSM, "mcsm") {
         if (!serverCheck(name)) return
         serverInstances[name]?.let {
             runCatching { api.getInstanceLog(it.uuid, it.daemonUUid, apiKey) }.onSuccess {
-                sendMessage(logToString(it.removeColorCodeLog(), regex.toRegex(), index, maxSize))
+                sendMessage(logToString(it.data!!.removeColorCodeLog(), regex.toRegex(), index, maxSize))
             }.onFailure { sendMessage(it.localizedMessage) }
         }
     }
@@ -327,14 +336,12 @@ object MCSMCompositeCommand : CompositeCommand(MCSM, "mcsm") {
     }
 
     @SubCommand("addBlacklist", "添加黑名单")
-    @Description("添加到黑名单")
     suspend fun CommandSender.addBlacklist(member: Member) {
         if (MCSMData.blacklist.add(member)) sendMessage("添加${member.nameCardOrNick}到黑名单")
         else sendMessage("添加黑名单失败")
     }
 
     @SubCommand("removeBlacklist", "移除黑名单")
-    @Description("移除到黑名单")
     suspend fun CommandSender.removeBlacklist(member: Member) {
         if (MCSMData.blacklist.remove(member)) sendMessage("将${member.nameCardOrNick}移除黑名单")
         else sendMessage("移除黑名单失败")

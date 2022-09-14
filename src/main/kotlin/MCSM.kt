@@ -116,7 +116,7 @@ object MCSM : KotlinPlugin(
             var getSuccess = false
             do {
                 delay(500)
-                val log = api.getInstanceLog(server.uuid, server.daemonUUid, apiKey)
+                val log = api.getInstanceLog(server.uuid, server.daemonUUid, apiKey).data!!
                 try {
                     val minecraftLog = log.toRemoveColorCodeMinecraftLog()
                         .filter { it.channels == "minecraft/DedicatedServer" }
