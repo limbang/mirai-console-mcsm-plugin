@@ -26,19 +26,19 @@ fun String.removeColorCodeLog(): String {
  */
 fun String.toMinecraftLog(): List<MinecraftLog> {
     val minecraftLogList = mutableListOf<MinecraftLog>()
-    """\[(\d+):(\d+):(\d+)]\s\[[a-zA-Z0-9-.\s]+/([A-Z]+)]\s\[([\S/]+)]:\s(.*)""".toRegex()
+    """\[(\d{2}):(\d{2}):(\d{2})]\s\[(.*)/([A-Z]{4,5})].*:\s(.*)""".toRegex()
         .findAll(this)
         .forEach {
             minecraftLogList.add(
                 MinecraftLog(
-                    LocalTime.of(it.groupValues[1].toInt(), it.groupValues[2].toInt(), it.groupValues[3].toInt()),
-                    try {
-                        Level.valueOf(it.groupValues[4])
+                    time = LocalTime.of(it.groupValues[1].toInt(), it.groupValues[2].toInt(), it.groupValues[3].toInt()),
+                    thread = it.groupValues[4],
+                    level = try {
+                        Level.valueOf(it.groupValues[5])
                     } catch (e: IllegalArgumentException) {
                         Level.INFO
                     },
-                    it.groupValues[5],
-                    it.groupValues[6]
+                    message = it.groupValues[6]
                 )
             )
         }

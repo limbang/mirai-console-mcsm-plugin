@@ -12,8 +12,8 @@ package top.limbang.mcsm.entity
 import java.time.LocalTime
 
 data class MinecraftLog(
-    val time : LocalTime,
-    val level : Level,
-    val channels : String,
-    val message : String
+    val time: LocalTime,
+    val thread: String,
+    val level: Level,
+    val message: String
 )
