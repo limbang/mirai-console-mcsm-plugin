@@ -1,13 +1,13 @@
 plugins {
-    val kotlinVersion = "1.7.0"
+    val kotlinVersion = "1.7.20"
     kotlin("jvm") version kotlinVersion
     kotlin("plugin.serialization") version kotlinVersion
 
-    id("net.mamoe.mirai-console") version "2.12.2"
+    id("net.mamoe.mirai-console") version "2.13.0"
 }
 
 group = "top.limbang"
-version = "1.0.10"
+version = "1.1.0"
 
 
 repositories {
@@ -19,7 +19,7 @@ dependencies {
 
     implementation("com.squareup.retrofit2:retrofit:2.9.0")
     implementation("com.squareup.okhttp3:okhttp:5.0.0-alpha.2")
-    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.4.0")
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.4.1")
     compileOnly("top.limbang:mirai-plugin-general-interface:1.0.1")
 
     testImplementation(kotlin("test"))
