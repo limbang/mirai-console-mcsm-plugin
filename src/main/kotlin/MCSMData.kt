@@ -33,6 +33,16 @@ object MCSMData : AutoSavePluginData("mcsm") {
 
     @ValueDescription("黑名单")
     val blacklist : MutableSet<Member> by value()
+
+    @ValueDescription("是否启用发送消息到服务器功能，默认启用")
+    var isEnabledSendMessage : Boolean by value(true)
+
+    @ValueDescription("是否启用通知消息功能，默认启用")
+    var isEnabledNotice : Boolean by value(true)
+
+    @ValueDescription("是否启用强制启动功能，默认启用")
+    var isEnabledForceStart : Boolean by value(true)
+
 }
 
 /**

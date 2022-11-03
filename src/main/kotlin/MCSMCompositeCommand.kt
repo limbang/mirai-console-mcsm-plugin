@@ -19,6 +19,9 @@ import net.mamoe.mirai.event.broadcast
 import top.limbang.mcsm.MCSM.isLoadGeneralPluginInterface
 import top.limbang.mcsm.MCSMData.apiKey
 import top.limbang.mcsm.MCSMData.apiUrl
+import top.limbang.mcsm.MCSMData.isEnabledForceStart
+import top.limbang.mcsm.MCSMData.isEnabledNotice
+import top.limbang.mcsm.MCSMData.isEnabledSendMessage
 import top.limbang.mcsm.MCSMData.isTps
 import top.limbang.mcsm.MCSMData.serverInstances
 import top.limbang.mcsm.model.Tasks
@@ -225,7 +228,6 @@ object MCSMCompositeCommand : CompositeCommand(MCSM, "mcsm") {
                 delay(1000)
                 val result = api.getInstanceLog(server.uuid, server.daemonUUid, apiKey).data!!
                     .toRemoveColorCodeMinecraftLog()
-                    .filter { it.channels == "minecraft/DedicatedServer" }
                     .filter { it.time >= time && it.time.hour == time.hour && it.time.minute == time.minute }
                     .filter { "Initializing".toRegex().containsMatchIn(it.message) }
                 if (result.isEmpty()) {
@@ -237,7 +239,6 @@ object MCSMCompositeCommand : CompositeCommand(MCSM, "mcsm") {
                     delay(1000)
                     val sparkResult = api.getInstanceLog(server.uuid, server.daemonUUid, apiKey).data!!
                         .toRemoveColorCodeMinecraftLog()
-                        .filter { it.channels == "minecraft/DedicatedServer" }
                         .filter { it.time >= time }
                         .filter { "https".toRegex().containsMatchIn(it.message) }
                     if (sparkResult.isNotEmpty()) sendMessage(sparkResult.last().message)
@@ -248,7 +249,7 @@ object MCSMCompositeCommand : CompositeCommand(MCSM, "mcsm") {
         }
     }
 
-    internal suspend fun MCSManagerApi.sendCommand(name: String, command: String): String {
+    private suspend fun MCSManagerApi.sendCommand(name: String, command: String): String {
         serverInstances[name]?.let { server ->
             runCatching { sendCommandInstance(server.uuid, server.daemonUUid, apiKey, command) }.onSuccess { response ->
                 // 获取命令发送成功的时间戳以默认时区转成时间
@@ -257,7 +258,6 @@ object MCSMCompositeCommand : CompositeCommand(MCSM, "mcsm") {
                 var message = ""
                 getInstanceLog(server.uuid, server.daemonUUid, apiKey).data!!
                     .toRemoveColorCodeMinecraftLog()
-                    .filter { it.channels == "minecraft/DedicatedServer" }
                     .filter { it.time >= time && it.time.hour == time.hour && it.time.minute == time.minute }
                     .filter { !"<.*>".toRegex().containsMatchIn(it.message) }
                     .forEach { message += "${it.message}\n" }
@@ -335,16 +335,39 @@ object MCSMCompositeCommand : CompositeCommand(MCSM, "mcsm") {
         sendMessage("tps功能:$isTps")
     }
 
-    @SubCommand("addBlacklist", "添加黑名单")
+    @SubCommand
+    @Description("添加黑名单")
     suspend fun CommandSender.addBlacklist(member: Member) {
         if (MCSMData.blacklist.add(member)) sendMessage("添加${member.nameCardOrNick}到黑名单")
         else sendMessage("添加黑名单失败")
     }
 
-    @SubCommand("removeBlacklist", "移除黑名单")
+    @SubCommand
+    @Description("移除黑名单")
     suspend fun CommandSender.removeBlacklist(member: Member) {
         if (MCSMData.blacklist.remove(member)) sendMessage("将${member.nameCardOrNick}移除黑名单")
         else sendMessage("移除黑名单失败")
+    }
+
+    @SubCommand
+    @Description("设置发送消息到服务器功能启用")
+    suspend fun CommandSender.setSendMessage(value: Boolean) {
+        isEnabledSendMessage = value
+        sendMessage("发送消息到服务器功能:$isEnabledSendMessage")
+    }
+
+    @SubCommand
+    @Description("设置通知消息功能启用")
+    suspend fun CommandSender.setNotice(value: Boolean) {
+        isEnabledNotice = value
+        sendMessage("通知消息功能:$isEnabledNotice")
+    }
+
+    @SubCommand
+    @Description("设置强制启动功能启用")
+    suspend fun CommandSender.setForceStart(value: Boolean) {
+        isEnabledForceStart = value
+        sendMessage("强制启动功能:$isEnabledForceStart")
     }
 
 }
