@@ -18,7 +18,7 @@ import java.time.LocalTime
  * 删除日志的颜色代码
  */
 fun String.removeColorCodeLog(): String {
-    return """\[[\d;K]*m""".toRegex().replace(this, "")
+    return """\[[\d;]*?[mK]""".toRegex().replace(this, "")
 }
 
 /**
@@ -26,7 +26,7 @@ fun String.removeColorCodeLog(): String {
  */
 fun String.toMinecraftLog(): List<MinecraftLog> {
     val minecraftLogList = mutableListOf<MinecraftLog>()
-    """\[(\d{2}):(\d{2}):(\d{2})]\s\[(.*)/([A-Z]{4,5})].*:\s(.*)""".toRegex()
+    """\[(\d{2}):(\d{2}):(\d{2})]\s\[(.*?)/([A-Z]{4,5})].*?:\s(.*)""".toRegex()
         .findAll(this)
         .forEach {
             minecraftLogList.add(
