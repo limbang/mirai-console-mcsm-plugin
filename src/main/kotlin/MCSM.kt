@@ -122,8 +122,14 @@ object MCSM : KotlinPlugin(
             // 获取当前时间,忽略毫秒
             val time = LocalTime.now().withNano(0)
             var getSuccess = false
+            var cumulativeTime = 0
             do {
-                delay(500)
+                delay(1000)
+                cumulativeTime++
+                if (cumulativeTime >= 10) {
+                    group.sendMessage("$name:获取 tps 超时")
+                    return
+                }
                 val log = api.getInstanceLog(server.uuid, server.daemonUUid, apiKey).data!!
                 try {
                     val minecraftLog = log.toRemoveColorCodeMinecraftLog()
