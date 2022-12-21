@@ -3,11 +3,11 @@ plugins {
     kotlin("jvm") version kotlinVersion
     kotlin("plugin.serialization") version kotlinVersion
 
-    id("net.mamoe.mirai-console") version "2.13.0"
+    id("net.mamoe.mirai-console") version "2.12.0"
 }
 
 group = "top.limbang"
-version = "1.1.0"
+version = "1.1.1"
 
 
 repositories {
