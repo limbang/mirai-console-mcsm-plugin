@@ -9,6 +9,7 @@
 
 package top.limbang.mcsm
 
+import jdk.jfr.Description
 import kotlinx.coroutines.delay
 import net.mamoe.mirai.console.command.CommandSender
 import net.mamoe.mirai.console.command.CompositeCommand
@@ -34,7 +35,11 @@ import java.time.LocalTime
 import java.time.ZoneId
 
 
-object MCSMCompositeCommand : CompositeCommand(MCSM, "mcsm") {
+object MCSMCompositeCommand : CompositeCommand(
+    owner = MCSM,
+    primaryName = "mcsm",
+    description = "控制 MCSM API 的指令"
+) {
 
     val api by lazy { RetrofitClient(apiUrl).getMCSManagerApi() }
 
