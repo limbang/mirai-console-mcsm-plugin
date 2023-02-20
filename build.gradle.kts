@@ -1,13 +1,13 @@
 plugins {
-    val kotlinVersion = "1.7.20"
+    val kotlinVersion = "1.8.0"
     kotlin("jvm") version kotlinVersion
     kotlin("plugin.serialization") version kotlinVersion
 
-    id("net.mamoe.mirai-console") version "2.12.0"
+    id("net.mamoe.mirai-console") version "2.14.0"
 }
 
 group = "top.limbang"
-version = "1.1.1"
+version = "1.1.2"
 
 
 repositories {
