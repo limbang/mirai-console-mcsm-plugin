@@ -146,11 +146,19 @@ object MCSMCompositeCommand : CompositeCommand(
         if (groupInstances[subject.id] == null)
             groupInstances[subject.id] = mutableListOf()
 
-        val mcsm = mcsmList.find { it.name == mcsmName }!!
-        val daemon = mcsm.daemons.find { it.uuid.indexOf(daemonUUID) != -1 }!!
-        val instance = daemon.instances.find { it.config.nickname == instanceName }!!
+        val mcsm = mcsmList.find { it.name == mcsmName } ?: return
+        val daemon = mcsm.daemons.find { it.uuid.indexOf(daemonUUID) != -1 } ?: return
+        val instance = daemon.instances.find { it.config.nickname == instanceName } ?: return
 
-        groupInstances[subject.id]!!.add(
+        val instances = groupInstances[subject.id]!!
+
+        // 如果已经添加就删除在添加
+        val removeInstance = instances.find { it.name == name }
+        if (removeInstance != null) {
+            instances.remove(removeInstance)
+        }
+
+        instances.add(
             GroupInstance(
                 name = name,
                 uuid = instance.instanceUuid,
