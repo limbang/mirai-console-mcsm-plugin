@@ -20,10 +20,12 @@ import net.mamoe.mirai.event.registerTo
 import top.limbang.mcsm.RetrofitClient
 import top.limbang.mcsm.mirai.command.GroupConfigCompositeCommand
 import top.limbang.mcsm.mirai.command.MCSMCompositeCommand
+import top.limbang.mcsm.mirai.command.MCSMCompositeCommand.apiMap
 import top.limbang.mcsm.mirai.command.MCSMCompositeCommand.renameInstance
 import top.limbang.mcsm.mirai.command.MCSMListener
 import top.limbang.mcsm.mirai.command.ModCompositeCommand
 import top.limbang.mcsm.mirai.config.MCSMData
+import top.limbang.mcsm.mirai.config.MCSMData.mcsmList
 import top.limbang.mirai.event.GroupRenameEvent
 
 object MCSM : KotlinPlugin(
@@ -75,11 +77,10 @@ object MCSM : KotlinPlugin(
         }
     }
 
-
     private fun initAPI() {
-        MCSMData.mcsmList.forEach {
+        mcsmList.forEach {
             val apiService = RetrofitClient(it.url).getMCSManagerApi()
-            MCSMCompositeCommand.api[it.key] = apiService
+            apiMap[it.key] = apiService
         }
     }
 

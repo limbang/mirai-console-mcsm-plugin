@@ -30,7 +30,7 @@ object ModCompositeCommand : CompositeCommand(
         val instance = getInstance(name)
 
         runCatching {
-            MCSMCompositeCommand.api[instance.apiKey]!!.sendCommandInstance(
+            MCSMCompositeCommand.apiMap[instance.apiKey]!!.sendCommandInstance(
                 instance.uuid,
                 instance.daemonUUID,
                 instance.apiKey,
@@ -39,7 +39,7 @@ object ModCompositeCommand : CompositeCommand(
         }.onSuccess {
             val time = LocalTime.now().withNano(0)
             delay(1000)
-            val result = MCSMCompositeCommand.api[instance.apiKey]!!.getInstanceLog(
+            val result = MCSMCompositeCommand.apiMap[instance.apiKey]!!.getInstanceLog(
                 instance.uuid, instance.daemonUUID, instance.apiKey
             ).data!!
                 .toRemoveColorCodeMinecraftLog()
@@ -52,7 +52,7 @@ object ModCompositeCommand : CompositeCommand(
             sendMessage("正在初始化 Spark 分析器,30秒后返回结果...")
             do {
                 delay(1000)
-                val sparkResult = MCSMCompositeCommand.api[instance.apiKey]!!.getInstanceLog(
+                val sparkResult = MCSMCompositeCommand.apiMap[instance.apiKey]!!.getInstanceLog(
                     instance.uuid, instance.daemonUUID, instance.apiKey
                 ).data!!
                     .toRemoveColorCodeMinecraftLog()

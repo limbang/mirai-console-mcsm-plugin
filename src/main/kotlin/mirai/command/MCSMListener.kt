@@ -22,7 +22,7 @@ import net.mamoe.mirai.event.events.GroupMessageEvent
 import net.mamoe.mirai.utils.MiraiLogger
 import top.limbang.mcsm.entity.Chat
 import top.limbang.mcsm.mirai.MCSM
-import top.limbang.mcsm.mirai.command.MCSMCompositeCommand.api
+import top.limbang.mcsm.mirai.command.MCSMCompositeCommand.apiMap
 import top.limbang.mcsm.mirai.config.MCSMData.groupConfig
 import top.limbang.mcsm.mirai.config.MCSMData.groupInstances
 import top.limbang.mcsm.utils.toRemoveColorCodeMinecraftLog
@@ -53,7 +53,7 @@ object MCSMListener : SimpleListenerHost() {
         val cmd = "title @a title ${Json.encodeToString(arrayListOf(Chat(text = message, color = "red")))}"
         groupInstances[group.id]!!.forEach { instance ->
             launch {
-                api[instance.apiKey]!!.sendCommandInstance(instance.uuid, instance.daemonUUID, instance.apiKey, cmd)
+                apiMap[instance.apiKey]!!.sendCommandInstance(instance.uuid, instance.daemonUUID, instance.apiKey, cmd)
             }
         }
     }
@@ -82,7 +82,7 @@ object MCSMListener : SimpleListenerHost() {
                 )
             }"
             launch {
-                api[it.apiKey]!!.sendCommandInstance(it.uuid, it.daemonUUID, it.apiKey, cmd)
+                apiMap[it.apiKey]!!.sendCommandInstance(it.uuid, it.daemonUUID, it.apiKey, cmd)
             }
         }
     }
@@ -101,7 +101,7 @@ object MCSMListener : SimpleListenerHost() {
         val (name) = match.destructured
         val instance = instances.find { it.name == name.trim() } ?: return
         launch {
-            api[instance.apiKey]!!.sendCommandInstance(instance.uuid, instance.daemonUUID, instance.apiKey, "forge tps")
+            apiMap[instance.apiKey]!!.sendCommandInstance(instance.uuid, instance.daemonUUID, instance.apiKey, "forge tps")
             // 获取当前时间,忽略毫秒
             val time = LocalTime.now().withNano(0)
             var getSuccess = false
@@ -114,7 +114,7 @@ object MCSMListener : SimpleListenerHost() {
                     return@launch
                 }
                 val log =
-                    api[instance.apiKey]!!.getInstanceLog(instance.uuid, instance.daemonUUID, instance.apiKey).data!!
+                    apiMap[instance.apiKey]!!.getInstanceLog(instance.uuid, instance.daemonUUID, instance.apiKey).data!!
                 try {
                     val minecraftLog = log.toRemoveColorCodeMinecraftLog()
                         .last { it.message.indexOf("Overall") != -1 }
@@ -148,7 +148,7 @@ object MCSMListener : SimpleListenerHost() {
 
         launch {
             runCatching {
-                api[instance.apiKey]!!.openInstance(
+                apiMap[instance.apiKey]!!.openInstance(
                     instance.uuid,
                     instance.daemonUUID,
                     instance.apiKey
@@ -158,7 +158,7 @@ object MCSMListener : SimpleListenerHost() {
             }.onFailure { e ->
                 if (e.localizedMessage == "实例未处于关闭状态，无法再进行启动") {
                     group.sendMessage("检测到服务器正在运行中,尝试获取在线人数请稍等...")
-                    val instant = api[instance.apiKey]!!.sendCommandInstance(
+                    val instant = apiMap[instance.apiKey]!!.sendCommandInstance(
                         instance.uuid,
                         instance.daemonUUID,
                         instance.apiKey,
@@ -166,7 +166,7 @@ object MCSMListener : SimpleListenerHost() {
                     ).time
                     val time = Instant.ofEpochMilli(instant).atZone(ZoneId.systemDefault()).toLocalTime().withNano(0)
                     delay(1000)
-                    val log = api[instance.apiKey]!!.getInstanceLog(
+                    val log = apiMap[instance.apiKey]!!.getInstanceLog(
                         instance.uuid,
                         instance.daemonUUID,
                         instance.apiKey
@@ -181,7 +181,7 @@ object MCSMListener : SimpleListenerHost() {
                     if (isFailure) {
                         group.sendMessage("获取在线人数失败,开始强行停止服务器...")
                         runCatching {
-                            api[instance.apiKey]!!.killInstance(
+                            apiMap[instance.apiKey]!!.killInstance(
                                 instance.uuid,
                                 instance.daemonUUID,
                                 instance.apiKey

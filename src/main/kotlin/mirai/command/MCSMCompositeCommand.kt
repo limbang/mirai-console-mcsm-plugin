@@ -39,7 +39,7 @@ object MCSMCompositeCommand : CompositeCommand(
     description = "控制 MCSM API 的指令"
 ) {
     private val http = """^https?://""".toRegex()
-    val api: MutableMap<String, MCSManagerApi> = mutableMapOf()
+    val apiMap: MutableMap<String, MCSManagerApi> = mutableMapOf()
 
     @SubCommand("addmcsm")
     @Description("添加需要管理的 MCSManager")
@@ -56,30 +56,44 @@ object MCSMCompositeCommand : CompositeCommand(
 
         val apiUrl = if (url.endsWith("/")) "${url}api/" else "$url/api/"
 
-        val apiService = RetrofitClient(apiUrl).getMCSManagerApi()
+        val api = RetrofitClient(apiUrl).getMCSManagerApi()
 
         // 验证是否能正常获取守护进程列表
-        runCatching { apiService.getAllDaemonList(key) }.onFailure {
+        runCatching {
+            updateMCSM(name = name, apiUrl = url, key = key, api = api)
+        }.onFailure {
             sendMessage(it.localizedMessage)
-            return
         }.onSuccess {
-
-            val mcsm = MCSManager(
-                name = name,
-                url = apiUrl,
-                key = key,
-                daemons = it.data!!
-            )
-
-            // 删掉重复项
-            deleteMCSM(name)
-
-            // 添加
-            mcsmList.add(mcsm)
-            api[key] = apiService
-            sendMessage("[$name]添加成功")
+            if (it) {
+                apiMap[key] = api
+                sendMessage("[$name]添加成功")
+            } else {
+                sendMessage("[$name]添加错误,data为null。")
+            }
         }
     }
+
+    internal suspend fun updateMCSM(mcsm: MCSManager, api: MCSManagerApi) =
+        updateMCSM(name = mcsm.name, apiUrl = mcsm.url, key = mcsm.key, api = api)
+
+    private suspend fun updateMCSM(name: String, apiUrl: String, key: String, api: MCSManagerApi): Boolean {
+        // 删掉重复项
+        deleteMCSM(name)
+
+        val daemons = api.getAllDaemonList(key).data ?: return false
+
+        val mcsm = MCSManager(
+            name = name,
+            url = apiUrl,
+            key = key,
+            daemons = daemons
+        )
+
+        // 添加
+        mcsmList.add(mcsm)
+        return true
+    }
+
 
     @SubCommand("deletemcsm")
     @Description("删除 MCSManager")
@@ -98,6 +112,13 @@ object MCSMCompositeCommand : CompositeCommand(
     @SubCommand("listmcsm")
     @Description("查看所有MCSM列表")
     suspend fun CommandSender.listmcsm() {
+
+        // 更新列表
+        apiMap.forEach { (key, api) ->
+            val mcsm = mcsmList.find { it.key == key } ?: return@forEach
+            updateMCSM(mcsm = mcsm, api = api)
+        }
+
         var msg = "所有列表如下:\n"
 
         mcsmList.forEach { mcsm ->
@@ -217,7 +238,7 @@ object MCSMCompositeCommand : CompositeCommand(
         if (isNotGroup()) return
         val instance = getInstance(name)
         runCatching {
-            api[instance.apiKey]!!.openInstance(
+            apiMap[instance.apiKey]!!.openInstance(
                 uuid = instance.uuid,
                 remoteUuid = instance.daemonUUID,
                 apikey = instance.apiKey
@@ -235,7 +256,7 @@ object MCSMCompositeCommand : CompositeCommand(
         if (isNotGroup()) return
         val instance = getInstance(name)
         runCatching {
-            api[instance.apiKey]!!.stopInstance(
+            apiMap[instance.apiKey]!!.stopInstance(
                 uuid = instance.uuid,
                 remoteUuid = instance.daemonUUID,
                 apikey = instance.apiKey
@@ -252,7 +273,7 @@ object MCSMCompositeCommand : CompositeCommand(
         if (isNotGroup()) return
         val instance = getInstance(name)
         runCatching {
-            api[instance.apiKey]!!.killInstance(
+            apiMap[instance.apiKey]!!.killInstance(
                 uuid = instance.uuid,
                 remoteUuid = instance.daemonUUID,
                 apikey = instance.apiKey
@@ -269,7 +290,7 @@ object MCSMCompositeCommand : CompositeCommand(
         if (isNotGroup()) return
         val instance = getInstance(name)
         runCatching {
-            api[instance.apiKey]!!.restartInstance(
+            apiMap[instance.apiKey]!!.restartInstance(
                 uuid = instance.uuid,
                 remoteUuid = instance.daemonUUID,
                 apikey = instance.apiKey
@@ -297,7 +318,7 @@ object MCSMCompositeCommand : CompositeCommand(
     suspend fun UserCommandSender.command(name: String, vararg command: String) {
         if (isNotGroup()) return
         val instance = getInstance(name)
-        val result = api[instance.apiKey]!!.sendCommand(subject.id, name, spliceVararg(command))
+        val result = apiMap[instance.apiKey]!!.sendCommand(subject.id, name, spliceVararg(command))
         if (result.isNotEmpty()) sendMessage(result)
     }
 
@@ -335,7 +356,7 @@ object MCSMCompositeCommand : CompositeCommand(
         val instance = getInstance(name)
         val tasks = Tasks(name = tasksName, count = count, time = time, payload = spliceVararg(command))
         runCatching {
-            api[instance.apiKey]!!.createScheduledTasks(
+            apiMap[instance.apiKey]!!.createScheduledTasks(
                 instance.uuid,
                 instance.daemonUUID,
                 instance.apiKey,
@@ -353,7 +374,7 @@ object MCSMCompositeCommand : CompositeCommand(
         if (isNotGroup()) return
         val instance = getInstance(name)
         runCatching {
-            api[instance.apiKey]!!.deleteScheduledTasks(
+            apiMap[instance.apiKey]!!.deleteScheduledTasks(
                 instance.uuid,
                 instance.daemonUUID,
                 instance.apiKey,
@@ -378,7 +399,7 @@ object MCSMCompositeCommand : CompositeCommand(
         if (isNotGroup()) return
         val instance = getInstance(name)
         runCatching {
-            api[instance.apiKey]!!.getInstanceLog(
+            apiMap[instance.apiKey]!!.getInstanceLog(
                 instance.uuid,
                 instance.daemonUUID,
                 instance.apiKey
