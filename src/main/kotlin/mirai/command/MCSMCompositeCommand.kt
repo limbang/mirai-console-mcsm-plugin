@@ -116,7 +116,9 @@ object MCSMCompositeCommand : CompositeCommand(
         // 更新列表
         apiMap.forEach { (key, api) ->
             val mcsm = mcsmList.find { it.key == key } ?: return@forEach
-            updateMCSM(mcsm = mcsm, api = api)
+            runCatching { updateMCSM(mcsm = mcsm, api = api) }.onFailure {
+                sendMessage(it.localizedMessage)
+            }
         }
 
         var msg = "所有列表如下:\n"
@@ -131,7 +133,7 @@ object MCSMCompositeCommand : CompositeCommand(
             }
         }
 
-        sendMessage(msg)
+        if(mcsmList.size == 0) sendMessage("未添加 MCSM.") else sendMessage(msg)
     }
 
     internal suspend fun UserCommandSender.isNotGroup() = (subject !is Group).also {
