@@ -132,7 +132,7 @@ object MCSMCompositeCommand : CompositeCommand(
             }
         }
 
-        if(mcsmList.size == 0) sendMessage("未添加 MCSM.") else sendMessage(msg)
+        if(mcsmList.size == 0) sendMessage("未添加 MCSM.") else sendMessage(msg.trimEnd())
     }
 
     internal suspend fun UserCommandSender.isNotGroup() = (subject !is Group).also {
@@ -150,9 +150,9 @@ object MCSMCompositeCommand : CompositeCommand(
         }
         var list = "列表如下:\n"
         instances.forEach {
-            list += "[${it.name}] "
+            list += "${it.name}:${it.uuid}\n"
         }
-        sendMessage(list)
+        sendMessage(list.trimEnd())
     }
 
 
