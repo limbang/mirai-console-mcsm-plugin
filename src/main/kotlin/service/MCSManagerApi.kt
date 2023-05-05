@@ -11,6 +11,7 @@ package top.limbang.mcsm.service
 
 import retrofit2.http.*
 import top.limbang.mcsm.model.Daemon
+import top.limbang.mcsm.model.FilesDownload
 import top.limbang.mcsm.model.MCSMResponse
 import top.limbang.mcsm.model.Tasks
 
@@ -133,4 +134,18 @@ interface MCSManagerApi {
         @Query("remote_uuid") remoteUuid: String,
         @Query("apikey") apikey: String
     ): MCSMResponse<String>
+
+    /**
+     * ### 请求下载文件
+     * @param uuid 守护进程下的实例 UUID
+     * @param remoteUuid 守护进程 UUID
+     * @param apikey API 密钥
+     */
+    @GET("files/download")
+    suspend fun filesDownload(
+            @Query("uuid") uuid: String,
+            @Query("remote_uuid") remoteUuid: String,
+            @Query("apikey") apikey: String,
+            @Query("file_name") fileName : String
+    ): MCSMResponse<FilesDownload>
 }
