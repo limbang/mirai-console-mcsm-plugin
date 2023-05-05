@@ -26,7 +26,6 @@ import top.limbang.mcsm.mirai.config.MCSMData.mcsmList
 import top.limbang.mcsm.model.MCSManager
 import top.limbang.mcsm.model.Tasks
 import top.limbang.mcsm.service.MCSManagerApi
-import top.limbang.mcsm.utils.removeColorCodeLog
 import top.limbang.mcsm.utils.toRemoveColorCodeMinecraftLog
 import top.limbang.mirai.event.GroupRenameEvent
 import java.time.Instant
@@ -60,7 +59,7 @@ object MCSMCompositeCommand : CompositeCommand(
 
         // 验证是否能正常获取守护进程列表
         runCatching {
-            updateMCSM(name = name, apiUrl = url, key = key, api = api)
+            updateMCSM(name = name, apiUrl = apiUrl, key = key, api = api)
         }.onFailure {
             sendMessage(it.localizedMessage)
         }.onSuccess {
@@ -386,44 +385,6 @@ object MCSMCompositeCommand : CompositeCommand(
             sendMessage("删除计划任务[$tasksName]:$it")
         }.onFailure { sendMessage(it.localizedMessage) }
 
-    }
-
-    /**
-     * 获取实例日志
-     *
-     * @param name 实例名称
-     * @param regex 匹配的正则
-     * @param index 匹配组的第几个
-     */
-    @SubCommand("log")
-    @Description("获取指定实例的日志")
-    suspend fun UserCommandSender.getInstanceLog(name: String, regex: String, index: Int, maxSize: Int = 20) {
-        if (isNotGroup()) return
-        val instance = getInstance(name)
-        runCatching {
-            apiMap[instance.apiKey]!!.getInstanceLog(
-                instance.uuid,
-                instance.daemonUUID,
-                instance.apiKey
-            )
-        }.onSuccess {
-            sendMessage(logToString(it.data!!.removeColorCodeLog(), regex.toRegex(), index, maxSize))
-        }.onFailure { sendMessage(it.localizedMessage) }
-    }
-
-    private fun logToString(log: String, regex: Regex, index: Int, maxSize: Int): String {
-        val matchResults = regex.findAll(log).toList()
-        if (matchResults.isEmpty()) return "无匹配日志..."
-        if (maxSize == 1) return matchResults.last().groupValues[index]
-        val results = if (matchResults.size > maxSize)
-            matchResults.subList(matchResults.size - maxSize, matchResults.size)
-        else
-            matchResults.subList(0, matchResults.size)
-        var message = ""
-        results.forEach { result ->
-            message += "${result.groupValues[index]}\n"
-        }
-        return message.substring(0, message.length - 1)
     }
 
 
