@@ -150,7 +150,7 @@ object MCSMCompositeCommand : CompositeCommand(
         }
         var list = "列表如下:\n"
         instances.forEach {
-            list += "${it.name}:${it.uuid}\n"
+            list += "${it.name} : ${it.uuid.substring(0, 6)}\n"
         }
         sendMessage(list.trimEnd())
     }
