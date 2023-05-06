@@ -33,9 +33,9 @@ internal class MCSManagerApiTest() {
         api = RetrofitClient(url).getMCSManagerApi()
     }
 
-    private val charMessageRegex = """\[(\d{2}:\d{2}:\d{2})].*DedicatedServer]:\s<((?!\[吉祥物]亮亮).*)>\s(.*)""".toRegex()
-    private val opLogRegex =  """\[(\d{2}:\d{2}:\d{2})].*DedicatedServer]:\s\[?(.*)(Given.*|Opped.*|De-opped.*|Set.*Mode|Teleported.*)""".toRegex()
-    private val joinTheExitGameRegex = """\[(\d{2}:\d{2}:\d{2})].*DedicatedServer]:\s(.*) ((?:joined|left)) the game""".toRegex()
+    private val charMessageRegex = """\[.*(\d{2}:\d{2}:\d{2}).*].*DedicatedServer/?]:\s<((?!\[吉祥物]亮亮)|(?!亮亮).*)>\s(.*)""".toRegex()
+    private val opLogRegex =  """\[.*(\d{2}:\d{2}:\d{2}).*].*DedicatedServer/?]:\s\[?(.*)(Given.*|Opped.*|De-opped.*|Set.*Mode|Teleported.*|Gave.*|Made.*operator)""".toRegex()
+    private val joinTheExitGameRegex = """\[.*(\d{2}:\d{2}:\d{2}).*].*DedicatedServer/?]:\s(.*) ((?:joined|left)) the game""".toRegex()
     @Test
     fun filesDownload(){
         runBlocking {

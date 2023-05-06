@@ -105,10 +105,7 @@ object MCSMListener : SimpleListenerHost() {
         val instance = instances.find { it.name == name.trim() } ?: return
         launch {
             apiMap[instance.apiKey]!!.sendCommandInstance(
-                instance.uuid,
-                instance.daemonUUID,
-                instance.apiKey,
-                "forge tps"
+                instance.uuid, instance.daemonUUID, instance.apiKey, "forge tps"
             )
             // 获取当前时间,忽略毫秒
             val time = LocalTime.now().withNano(0)
@@ -124,8 +121,7 @@ object MCSMListener : SimpleListenerHost() {
                 val log =
                     apiMap[instance.apiKey]!!.getInstanceLog(instance.uuid, instance.daemonUUID, instance.apiKey).data!!
                 try {
-                    val minecraftLog = log.toRemoveColorCodeMinecraftLog()
-                        .last { it.message.indexOf("Overall") != -1 }
+                    val minecraftLog = log.toRemoveColorCodeMinecraftLog().last { it.message.indexOf("Overall") != -1 }
                     if (minecraftLog.time >= time) {
                         group.sendMessage(minecraftLog.message)
                         getSuccess = true
@@ -157,9 +153,7 @@ object MCSMListener : SimpleListenerHost() {
         launch {
             runCatching {
                 apiMap[instance.apiKey]!!.openInstance(
-                    instance.uuid,
-                    instance.daemonUUID,
-                    instance.apiKey
+                    instance.uuid, instance.daemonUUID, instance.apiKey
                 )
             }.onSuccess {
                 group.sendMessage("[$name]启动成功")
@@ -167,17 +161,12 @@ object MCSMListener : SimpleListenerHost() {
                 if (e.localizedMessage == "实例未处于关闭状态，无法再进行启动") {
                     group.sendMessage("检测到服务器正在运行中,尝试获取在线人数请稍等...")
                     val instant = apiMap[instance.apiKey]!!.sendCommandInstance(
-                        instance.uuid,
-                        instance.daemonUUID,
-                        instance.apiKey,
-                        "list"
+                        instance.uuid, instance.daemonUUID, instance.apiKey, "list"
                     ).time
                     val time = Instant.ofEpochMilli(instant).atZone(ZoneId.systemDefault()).toLocalTime().withNano(0)
                     delay(1000)
                     val log = apiMap[instance.apiKey]!!.getInstanceLog(
-                        instance.uuid,
-                        instance.daemonUUID,
-                        instance.apiKey
+                        instance.uuid, instance.daemonUUID, instance.apiKey
                     ).data!!.toRemoveColorCodeMinecraftLog()
                     val isFailure = log.filter {
                         // 过滤日志时间比时间戳早的日志
@@ -190,9 +179,7 @@ object MCSMListener : SimpleListenerHost() {
                         group.sendMessage("获取在线人数失败,开始强行停止服务器...")
                         runCatching {
                             apiMap[instance.apiKey]!!.killInstance(
-                                instance.uuid,
-                                instance.daemonUUID,
-                                instance.apiKey
+                                instance.uuid, instance.daemonUUID, instance.apiKey
                             )
                         }.onSuccess {
                             group.sendMessage("强行停止服务器成功,开始启动服务器...")
@@ -238,7 +225,8 @@ object MCSMListener : SimpleListenerHost() {
     }
 
     private fun charMessage(log: String): String {
-        val charMessageRegex = """\[(\d{2}:\d{2}:\d{2})].*DedicatedServer]:\s<((?!\[吉祥物]亮亮).*)>\s(.*)""".toRegex()
+        val charMessageRegex =
+            """\[.*(\d{2}:\d{2}:\d{2}).*].*DedicatedServer/?]:\s<((?!\[吉祥物]亮亮)|(?!亮亮).*)>\s(.*)""".toRegex()
         val charMessageResult = charMessageRegex.findAll(log)
         var out = ""
         charMessageResult.forEach {
@@ -250,7 +238,7 @@ object MCSMListener : SimpleListenerHost() {
 
     private fun opLogMessage(log: String): String {
         val opLogRegex =
-            """\[(\d{2}:\d{2}:\d{2})].*DedicatedServer]:\s\[?(.*)(Given.*|Opped.*|De-opped.*|Set.*Mode|Teleported.*)""".toRegex()
+            """\[.*(\d{2}:\d{2}:\d{2}).*].*DedicatedServer/?]:\s\[?(.*)(Given.*|Opped.*|De-opped.*|Set.*Mode|Teleported.*|Gave.*|Made.*operator)""".toRegex()
         val opLogResult = opLogRegex.findAll(log)
         var out = ""
         opLogResult.forEach {
@@ -262,7 +250,7 @@ object MCSMListener : SimpleListenerHost() {
 
     private fun joinTheExitGameMessage(log: String): String {
         val joinTheExitGameRegex =
-            """\[(\d{2}:\d{2}:\d{2})].*DedicatedServer]:\s(.*) ((?:joined|left)) the game""".toRegex()
+            """\[.*(\d{2}:\d{2}:\d{2}).*].*DedicatedServer/?]:\s(.*) ((?:joined|left)) the game""".toRegex()
         val joinTheExitGameResult = joinTheExitGameRegex.findAll(log)
         var out = ""
         joinTheExitGameResult.forEach {
