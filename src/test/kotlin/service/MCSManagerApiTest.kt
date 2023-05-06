@@ -34,10 +34,8 @@ internal class MCSManagerApiTest() {
     }
 
     private val charMessageRegex = """\[(\d{2}:\d{2}:\d{2})].*DedicatedServer]:\s<((?!\[吉祥物]亮亮).*)>\s(.*)""".toRegex()
-    private val opLogRegex = """\[(\d{2}:\d{2}:\d{2})].*DedicatedServer]:\s\[(.*):(.*)]""".toRegex()
-    private val joinedTheGameRegex = """\[(\d{2}:\d{2}:\d{2})].*DedicatedServer]:\s(.*) joined the game""".toRegex()
-    private val leftTheGameRegex = """\[(\d{2}:\d{2}:\d{2})].*DedicatedServer]:\s(.*) left the game""".toRegex()
-
+    private val opLogRegex =  """\[(\d{2}:\d{2}:\d{2})].*DedicatedServer]:\s\[?(.*)(Given.*|Opped.*|De-opped.*|Set.*Mode|Teleported.*)""".toRegex()
+    private val joinTheExitGameRegex = """\[(\d{2}:\d{2}:\d{2})].*DedicatedServer]:\s(.*) ((?:joined|left)) the game""".toRegex()
     @Test
     fun filesDownload(){
         runBlocking {
@@ -56,26 +54,21 @@ internal class MCSManagerApiTest() {
             val charMessageResult = charMessageRegex.findAll(log)
             charMessageResult.forEach {
                 val (time,name, msg) = it.destructured
-                println("$time $name:$msg")
+                println("$time <$name> $msg")
             }
 
             val opLogResult = opLogRegex.findAll(log)
             opLogResult.forEach {
-                val (time,name,info) = it.destructured
-                println("$time $name:$info")
+                val (time, name, info) = it.destructured
+                println("$time ${name.ifEmpty { "Server: " }}$info")
             }
 
-            val joinedTheGameResult = joinedTheGameRegex.findAll(log)
-            joinedTheGameResult.forEach {
-                val (time,name) = it.destructured
-                println("$time $name 加入游戏")
+            val joinTheExitGameResult = joinTheExitGameRegex.findAll(log)
+            joinTheExitGameResult.forEach {
+                val (time, name, state) = it.destructured
+                println("$time $name ${if (state == "joined") "加入游戏" else "退出游戏"}")
             }
 
-            val leftTheGameResult = leftTheGameRegex.findAll(log)
-            leftTheGameResult.forEach {
-                val (time,name) = it.destructured
-                println("$time $name 离开游戏")
-            }
 
         }
     }

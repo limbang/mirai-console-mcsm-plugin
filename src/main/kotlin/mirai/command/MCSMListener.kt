@@ -11,17 +11,15 @@ package top.limbang.mcsm.mirai.command
 
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import net.mamoe.mirai.console.command.CommandSender.Companion.toCommandSender
 import net.mamoe.mirai.console.permission.PermissionService.Companion.hasPermission
 import net.mamoe.mirai.contact.nameCardOrNick
-import net.mamoe.mirai.event.*
+import net.mamoe.mirai.event.EventHandler
+import net.mamoe.mirai.event.SimpleListenerHost
 import net.mamoe.mirai.event.events.GroupMessageEvent
-import net.mamoe.mirai.event.events.MessageEvent
-import net.mamoe.mirai.message.data.PlainText
-import net.mamoe.mirai.message.data.content
+import net.mamoe.mirai.message.data.buildForwardMessage
 import net.mamoe.mirai.utils.MiraiLogger
 import top.limbang.mcsm.entity.Chat
 import top.limbang.mcsm.mirai.MCSM
@@ -106,7 +104,12 @@ object MCSMListener : SimpleListenerHost() {
         val (name) = match.destructured
         val instance = instances.find { it.name == name.trim() } ?: return
         launch {
-            apiMap[instance.apiKey]!!.sendCommandInstance(instance.uuid, instance.daemonUUID, instance.apiKey, "forge tps")
+            apiMap[instance.apiKey]!!.sendCommandInstance(
+                instance.uuid,
+                instance.daemonUUID,
+                instance.apiKey,
+                "forge tps"
+            )
             // 获取当前时间,忽略毫秒
             val time = LocalTime.now().withNano(0)
             var getSuccess = false
@@ -205,6 +208,7 @@ object MCSMListener : SimpleListenerHost() {
 
     @EventHandler
     fun GroupMessageEvent.playerChatMessages() {
+        if (toCommandSender().hasPermission(MCSM.parentPermission).not()) return
         val instances = groupInstances[group.id] ?: return
         val content = message.contentToString()
         val match = """^分析日志\s?(.*)""".toRegex().find(content) ?: return
@@ -217,30 +221,19 @@ object MCSMListener : SimpleListenerHost() {
                 apikey = instance.apiKey,
                 fileName = "logs/latest.log"
             ).data!!
+
             val log = URL(filesDownload.toDownloadUrl()).readText()
 
-            val selectMessage =
-                group.sendMessage("输入序号选择功能:\n1:获取服务器玩家聊天消息\n2:获取服务器管理员修改记录\n3:获取服务器玩家上下线记录\nq:退出")
+            val forward = buildForwardMessage {
+                bot.id named "服务器玩家聊天消息" says charMessage(log).ifEmpty { "未找到匹配的玩家聊天消息." }
+                bot.id named "服务器管理员修改记录" says opLogMessage(log).ifEmpty { "未找到匹配的管理员修改记录." }
+                bot.id named "服务器玩家上下线记录" says joinTheExitGameMessage(log).ifEmpty { "未找到匹配的玩家上下线记录." }
+            }.copy(
+                title = "分析日志结果",
+                preview = listOf("服务器玩家聊天消息", "服务器管理员修改记录", "服务器玩家上下线记录")
+            )
 
-            var nextEvent: MessageEvent?
-            do {
-                nextEvent = withTimeoutOrNull(30000) {
-                    globalEventChannel().nextEvent(EventPriority.MONITOR) { next -> next.sender == sender }
-                }
-                if (nextEvent == null) {
-                    group.sendMessage(PlainText("等待超时,请重新查询").also { selectMessage.recall() })
-                    return@launch
-                }
-                val result = when (nextEvent.message.content) {
-                    "1" -> charMessage(log)
-                    "2" -> opLogMessage(log)
-                    "3" -> joinTheExitGameMessage(log)
-                    "q" -> return@launch
-                    else -> "输入错误..."
-                }
-
-                group.sendMessage(if (result.isEmpty()) "为找到相关匹配项..." else result)
-            } while (true)
+            group.sendMessage(forward)
         }
     }
 
@@ -250,18 +243,19 @@ object MCSMListener : SimpleListenerHost() {
         var out = ""
         charMessageResult.forEach {
             val (time, name, msg) = it.destructured
-            out += "$time $name:$msg\n"
+            out += "$time <$name> $msg\n"
         }
         return out.trimEnd()
     }
 
     private fun opLogMessage(log: String): String {
-        val opLogRegex = """\[(\d{2}:\d{2}:\d{2})].*DedicatedServer]:\s\[(.*):(.*)]""".toRegex()
+        val opLogRegex =
+            """\[(\d{2}:\d{2}:\d{2})].*DedicatedServer]:\s\[?(.*)(Given.*|Opped.*|De-opped.*|Set.*Mode|Teleported.*)""".toRegex()
         val opLogResult = opLogRegex.findAll(log)
         var out = ""
         opLogResult.forEach {
             val (time, name, info) = it.destructured
-            out += "$time $name:$info\n"
+            out += "$time ${name.ifEmpty { "Server: " }}$info\n"
         }
         return out.trimEnd()
     }
