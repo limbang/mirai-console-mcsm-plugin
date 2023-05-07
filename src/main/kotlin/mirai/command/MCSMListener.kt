@@ -209,7 +209,7 @@ object MCSMListener : SimpleListenerHost() {
                 fileName = "logs/latest.log"
             ).data!!
 
-            val log = URL(filesDownload.toDownloadUrl()).readText()
+            val log = URL(filesDownload.toDownloadUrl(apiUrl = instance.apiUrl)).readText()
 
             val forward = buildForwardMessage {
                 bot.id named "服务器玩家聊天消息" says charMessage(log).ifEmpty { "未找到匹配的玩家聊天消息." }

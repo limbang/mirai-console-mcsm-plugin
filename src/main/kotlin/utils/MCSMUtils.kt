@@ -16,14 +16,15 @@ import top.limbang.mcsm.model.FilesDownload
  *
  * @return url
  */
-fun FilesDownload.toDownloadUrl(fileName: String = "latest.log"): String {
+fun FilesDownload.toDownloadUrl(apiUrl: String, fileName: String = "latest.log"): String {
 
     val address = when {
         addr.indexOf("wss://") != -1 -> addr.replace("wss://", "https://")
         addr.indexOf("ws://") != -1 -> addr.replace("ws://", "http://")
-        addr.indexOf("https://") != -1 && addr.indexOf("http://") != -1 -> "http://${this.addr}"
+        addr.indexOf("https://") == -1 && addr.indexOf("http://") == -1 -> "http://${this.addr}"
         else -> this.addr
     }
+    val (baseUrl) = """://(.*?)[:/]""".toRegex().find(apiUrl)!!.destructured
 
-    return "$address/download/${password}/$fileName"
+    return "${address.replace("localhost", baseUrl)}/download/${password}/$fileName"
 }

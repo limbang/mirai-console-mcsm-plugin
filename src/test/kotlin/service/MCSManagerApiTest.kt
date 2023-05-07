@@ -12,6 +12,7 @@ package service
 import kotlinx.coroutines.runBlocking
 import top.limbang.mcsm.RetrofitClient
 import top.limbang.mcsm.service.MCSManagerApi
+import top.limbang.mcsm.utils.toDownloadUrl
 import java.io.FileInputStream
 import java.net.URL
 import java.util.*
@@ -22,11 +23,12 @@ internal class MCSManagerApiTest() {
     private val key: String
     private val uuid: String
     private val remoteUuid: String
+    private val url: String
 
     init {
         val prop = Properties()
         prop.load(FileInputStream("debug-sandbox/local.properties"))
-        val url = prop.getProperty("url")
+        url = prop.getProperty("url")
         key = prop.getProperty("key")
         uuid = prop.getProperty("uuid")
         remoteUuid = prop.getProperty("remoteUuid")
@@ -40,16 +42,8 @@ internal class MCSManagerApiTest() {
     fun filesDownload(){
         runBlocking {
             val filesDownload = api.filesDownload(uuid, remoteUuid, key,"logs/latest.log").data!!
-            val url = "${filesDownload.addr.run {
-                when {
-                    indexOf("wss://") != -1 -> replace("wss://", "https://")
-                    indexOf("ws://") != -1 -> replace("ws://", "http://")
-                    indexOf("https://") != -1 && indexOf("http://") != -1 -> "http://$this"
-                    else -> "http://$this"
-                }
-            }}/download/${filesDownload.password}/latest.log"
 
-            val log = URL(url).readText()
+            val log = URL(filesDownload.toDownloadUrl(apiUrl = url)).readText()
 
             val charMessageResult = charMessageRegex.findAll(log)
             charMessageResult.forEach {
