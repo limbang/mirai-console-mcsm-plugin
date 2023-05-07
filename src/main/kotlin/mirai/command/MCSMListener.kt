@@ -26,8 +26,7 @@ import top.limbang.mcsm.mirai.MCSM
 import top.limbang.mcsm.mirai.command.MCSMCompositeCommand.apiMap
 import top.limbang.mcsm.mirai.config.MCSMData.groupConfig
 import top.limbang.mcsm.mirai.config.MCSMData.groupInstances
-import top.limbang.mcsm.utils.toDownloadUrl
-import top.limbang.mcsm.utils.toRemoveColorCodeMinecraftLog
+import top.limbang.mcsm.utils.*
 import java.net.URL
 import java.time.Instant
 import java.time.LocalTime
@@ -225,8 +224,6 @@ object MCSMListener : SimpleListenerHost() {
     }
 
     private fun charMessage(log: String): String {
-        val charMessageRegex =
-            """\[.*(\d{2}:\d{2}:\d{2}).*].*DedicatedServer/?]:\s<((?!\[吉祥物]亮亮)|(?!亮亮).*)>\s(.*)""".toRegex()
         val charMessageResult = charMessageRegex.findAll(log)
         var out = ""
         charMessageResult.forEach {
@@ -237,9 +234,7 @@ object MCSMListener : SimpleListenerHost() {
     }
 
     private fun opLogMessage(log: String): String {
-        val opLogRegex =
-            """\[.*(\d{2}:\d{2}:\d{2}).*].*DedicatedServer/?]:\s\[?(.*)(Given.*|Opped.*|De-opped.*|Set.*Mode|Teleported.*|Gave.*|Made.*operator)""".toRegex()
-        val opLogResult = opLogRegex.findAll(log)
+          val opLogResult = opLogRegex.findAll(log)
         var out = ""
         opLogResult.forEach {
             val (time, name, info) = it.destructured
@@ -249,9 +244,7 @@ object MCSMListener : SimpleListenerHost() {
     }
 
     private fun joinTheExitGameMessage(log: String): String {
-        val joinTheExitGameRegex =
-            """\[.*(\d{2}:\d{2}:\d{2}).*].*DedicatedServer/?]:\s(.*) ((?:joined|left)) the game""".toRegex()
-        val joinTheExitGameResult = joinTheExitGameRegex.findAll(log)
+              val joinTheExitGameResult = joinTheExitGameRegex.findAll(log)
         var out = ""
         joinTheExitGameResult.forEach {
             val (time, name, state) = it.destructured

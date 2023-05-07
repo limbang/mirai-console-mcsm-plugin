@@ -50,3 +50,24 @@ fun String.toMinecraftLog(): List<MinecraftLog> {
  *
  */
 fun String.toRemoveColorCodeMinecraftLog() = this.removeColorCodeLog().toMinecraftLog()
+
+/**
+ * 加入退出游戏正则
+ *
+ */
+val joinTheExitGameRegex =
+    """\[.*(\d{2}:\d{2}:\d{2}).*].*(?:DedicatedServer|MinecraftServer)/?]:\s(.*) (joined|left) the game""".toRegex()
+
+/**
+ * 管理员操作正则
+ *
+ */
+val opLogRegex =
+    """\[.*(\d{2}:\d{2}:\d{2}).*].*(?:DedicatedServer|MinecraftServer)/?]:\s\[?(.*)(Given.*|Opped.*|De-opped.*|Set.*Mode|Teleported.*|Gave.*|Made.*operator)""".toRegex()
+
+/**
+ * 玩家聊天正则
+ *
+ */
+val charMessageRegex =
+    """\[.*(\d{2}:\d{2}:\d{2}).*].*(?:DedicatedServer|MinecraftServer)/?]:\s<((?!\[吉祥物]亮亮)|(?!亮亮).*)>\s(.*)""".toRegex()
