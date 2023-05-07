@@ -70,4 +70,4 @@ val opLogRegex =
  *
  */
 val charMessageRegex =
-    """\[.*(\d{2}:\d{2}:\d{2}).*].*(?:DedicatedServer|MinecraftServer)/?]:\s<((?!\[吉祥物]亮亮)|(?!亮亮).*)>\s(.*)""".toRegex()
+    """\[.*(\d{2}:\d{2}:\d{2}).*].*(?:DedicatedServer|MinecraftServer)/?]:\s<((?!\[吉祥物]亮亮|亮亮).*)>\s(.*)""".toRegex()
