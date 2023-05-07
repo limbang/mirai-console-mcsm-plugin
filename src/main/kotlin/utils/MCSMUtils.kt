@@ -10,6 +10,11 @@
 package top.limbang.mcsm.utils
 
 import top.limbang.mcsm.model.FilesDownload
+import top.limbang.mcsm.model.FilesList
+import java.text.SimpleDateFormat
+import java.time.LocalDateTime
+import java.time.ZoneId
+import java.util.*
 
 /**
  * FilesDownload 处理成能下载的 url
@@ -27,4 +32,15 @@ fun FilesDownload.toDownloadUrl(apiUrl: String, fileName: String = "latest.log")
     val (baseUrl) = """://(.*?)[:/]""".toRegex().find(apiUrl)!!.destructured
 
     return "${address.replace("localhost", baseUrl)}/download/${password}/$fileName"
+}
+
+/**
+ * 将字符串解析为 Date 对象，并转换为 LocalDateTime 对象
+ *
+ */
+fun FilesList.Item.toLocalDateTime(): LocalDateTime {
+    val dateFormat = SimpleDateFormat("EEE MMM dd yyyy HH:mm:ss z", Locale.US)
+    val dataTime = time.replace("GMT", "").replace("""\(.*\)""".toRegex(), "")
+    val date = dateFormat.parse(dataTime)
+    return LocalDateTime.ofInstant(date.toInstant(), ZoneId.systemDefault())
 }

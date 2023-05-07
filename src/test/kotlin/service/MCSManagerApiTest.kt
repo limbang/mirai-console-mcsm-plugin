@@ -12,10 +12,7 @@ package service
 import kotlinx.coroutines.runBlocking
 import top.limbang.mcsm.RetrofitClient
 import top.limbang.mcsm.service.MCSManagerApi
-import top.limbang.mcsm.utils.charMessageRegex
-import top.limbang.mcsm.utils.joinTheExitGameRegex
-import top.limbang.mcsm.utils.opLogRegex
-import top.limbang.mcsm.utils.toDownloadUrl
+import top.limbang.mcsm.utils.*
 import java.io.FileInputStream
 import java.net.URL
 import java.util.*
@@ -63,6 +60,16 @@ internal class MCSManagerApiTest() {
             }
 
 
+        }
+    }
+
+    @Test
+    fun filesList(){
+        runBlocking {
+            val filesList = api.filesList(uuid, remoteUuid, key,"crash-reports").data!!
+            // 找出最新时间的日志
+            val item = filesList.items.maxBy { it.toLocalDateTime() }
+            println(item.name)
         }
     }
 }

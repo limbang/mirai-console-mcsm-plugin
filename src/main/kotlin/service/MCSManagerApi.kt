@@ -10,10 +10,7 @@
 package top.limbang.mcsm.service
 
 import retrofit2.http.*
-import top.limbang.mcsm.model.Daemon
-import top.limbang.mcsm.model.FilesDownload
-import top.limbang.mcsm.model.MCSMResponse
-import top.limbang.mcsm.model.Tasks
+import top.limbang.mcsm.model.*
 
 /**
  * ### Minecraft服务器管理器服务
@@ -140,12 +137,32 @@ interface MCSManagerApi {
      * @param uuid 守护进程下的实例 UUID
      * @param remoteUuid 守护进程 UUID
      * @param apikey API 密钥
+     * @param fileName 文件名称
      */
     @GET("files/download")
     suspend fun filesDownload(
-            @Query("uuid") uuid: String,
-            @Query("remote_uuid") remoteUuid: String,
-            @Query("apikey") apikey: String,
-            @Query("file_name") fileName : String
+        @Query("uuid") uuid: String,
+        @Query("remote_uuid") remoteUuid: String,
+        @Query("apikey") apikey: String,
+        @Query("file_name") fileName: String
     ): MCSMResponse<FilesDownload>
+
+    /**
+     * ### 查看指定实例的文件列表
+     * @param uuid 守护进程下的实例 UUID
+     * @param remoteUuid 守护进程 UUID
+     * @param apikey API 密钥
+     * @param target 查看的文件目录，如：/xxx
+     * @param page 第几页，0代表第一页
+     * @param pageSize 每页容量，不得超过40
+     */
+    @GET("/api/files/list")
+    suspend fun filesList(
+        @Query("uuid") uuid: String,
+        @Query("remote_uuid") remoteUuid: String,
+        @Query("apikey") apikey: String,
+        @Query("target") target: String,
+        @Query("page") page: Int = 0,
+        @Query("page_size") pageSize: Int = 40,
+    ): MCSMResponse<FilesList>
 }
