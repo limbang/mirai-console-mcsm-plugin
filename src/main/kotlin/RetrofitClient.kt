@@ -16,6 +16,7 @@ import retrofit2.Retrofit
 import top.limbang.mcsm.converter.toConverterFactory
 import top.limbang.mcsm.interceptor.StatusInterceptor
 import top.limbang.mcsm.service.MCSManagerApi
+import top.limbang.mcsm.service.McloApi
 import java.util.concurrent.TimeUnit
 
 class RetrofitClient(
@@ -57,5 +58,9 @@ class RetrofitClient(
      */
     fun getMCSManagerApi(): MCSManagerApi {
         return instance.create(MCSManagerApi::class.java)
+    }
+
+    fun getMcloApi(): McloApi {
+        return instance.create(McloApi::class.java)
     }
 }
