@@ -21,6 +21,7 @@ import net.mamoe.mirai.event.SimpleListenerHost
 import net.mamoe.mirai.event.events.GroupMessageEvent
 import net.mamoe.mirai.message.data.buildForwardMessage
 import net.mamoe.mirai.utils.MiraiLogger
+import top.limbang.mcsm.RetrofitClient
 import top.limbang.mcsm.entity.Chat
 import top.limbang.mcsm.mirai.MCSM
 import top.limbang.mcsm.mirai.command.MCSMCompositeCommand.apiMap
@@ -34,6 +35,8 @@ import java.time.ZoneId
 import kotlin.coroutines.CoroutineContext
 
 object MCSMListener : SimpleListenerHost() {
+
+    private val mcloApi = RetrofitClient(apiUrl = "https://api.mclo.gs/1/").getMcloApi()
 
     @PublishedApi
     internal val logger: MiraiLogger = MiraiLogger.Factory.create(this::class.java)
@@ -251,5 +254,41 @@ object MCSMListener : SimpleListenerHost() {
             out += "$time $name ${if (state == "joined") "加入游戏" else "退出游戏"}\n"
         }
         return out.trimEnd()
+    }
+
+    @EventHandler
+    fun GroupMessageEvent.getCrashReports() {
+        if (toCommandSender().hasPermission(MCSM.parentPermission).not()) return
+        val instances = groupInstances[group.id] ?: return
+        val content = message.contentToString()
+        val match = """^崩溃报告\s?(.*)""".toRegex().find(content) ?: return
+        val (name) = match.destructured
+        val instance = instances.find { it.name == name.trim() } ?: return
+        launch {
+            // 获取文件列表
+            val filesList = apiMap[instance.apiKey]!!.filesList(
+                uuid = instance.uuid,
+                remoteUuid = instance.daemonUUID,
+                apikey = instance.apiKey,
+                target = "crash-reports"
+            ).data!!
+
+            // 找出最新时间的日志
+            val item = filesList.items.maxBy { it.toLocalDateTime() }
+            // 获取下载日志地址
+            val filesDownload = apiMap[instance.apiKey]!!.filesDownload(
+                uuid = instance.uuid,
+                remoteUuid = instance.daemonUUID,
+                apikey = instance.apiKey,
+                fileName = "crash-reports/${item.name}"
+            ).data!!
+            // 读取日志
+            val log = URL(filesDownload.toDownloadUrl(apiUrl = instance.apiUrl)).readText()
+            // 发送到 mclo
+            val mclo = mcloApi.pasteLogFile(log)
+
+            if(!mclo.success) group.sendMessage(mclo.error!!)
+            else group.sendMessage("崩溃报告:${mclo.url}")
+        }
     }
 }
