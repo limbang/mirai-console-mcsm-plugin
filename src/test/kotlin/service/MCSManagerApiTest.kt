@@ -49,8 +49,8 @@ internal class MCSManagerApiTest() {
 
             val opLogResult = opLogRegex.findAll(log)
             opLogResult.forEach {
-                val (time, name, info) = it.destructured
-                println("$time ${name.ifEmpty { "Server: " }}$info")
+                val (time, name, contents) = it.destructured
+                println("$time ${name.ifEmpty { "服务器" }}: $contents")
             }
 
             val joinTheExitGameResult = joinTheExitGameRegex.findAll(log)

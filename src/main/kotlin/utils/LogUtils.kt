@@ -26,22 +26,19 @@ fun String.removeColorCodeLog(): String {
  */
 fun String.toMinecraftLog(): List<MinecraftLog> {
     val minecraftLogList = mutableListOf<MinecraftLog>()
-    """\[(\d{2}):(\d{2}):(\d{2})]\s\[(.*?)/([A-Z]{4,5})].*?:\s(.*)""".toRegex()
-        .findAll(this)
-        .forEach {
-            minecraftLogList.add(
-                MinecraftLog(
-                    time = LocalTime.of(it.groupValues[1].toInt(), it.groupValues[2].toInt(), it.groupValues[3].toInt()),
-                    thread = it.groupValues[4],
-                    level = try {
-                        Level.valueOf(it.groupValues[5])
-                    } catch (e: IllegalArgumentException) {
-                        Level.INFO
-                    },
-                    message = it.groupValues[6]
-                )
+    """\[(\d{2}):(\d{2}):(\d{2})]\s\[(.*?)/([A-Z]{4,5})].*?:\s(.*)""".toRegex().findAll(this).forEach {
+        minecraftLogList.add(
+            MinecraftLog(
+                time = LocalTime.of(
+                    it.groupValues[1].toInt(), it.groupValues[2].toInt(), it.groupValues[3].toInt()
+                ), thread = it.groupValues[4], level = try {
+                    Level.valueOf(it.groupValues[5])
+                } catch (e: IllegalArgumentException) {
+                    Level.INFO
+                }, message = it.groupValues[6]
             )
-        }
+        )
+    }
     return minecraftLogList
 }
 
@@ -56,18 +53,18 @@ fun String.toRemoveColorCodeMinecraftLog() = this.removeColorCodeLog().toMinecra
  *
  */
 val joinTheExitGameRegex =
-    """\[.*(\d{2}:\d{2}:\d{2}).*].*(?:DedicatedServer|MinecraftServer)/?]:\s(.*) (joined|left) the game""".toRegex()
+    """\[.*(?<time>\d{2}:\d{2}:\d{2}).*].*(?:DedicatedServer|MinecraftServer)/?]:\s(?<name>.*) (?<state>joined|left) the game""".toRegex()
 
 /**
  * 管理员操作正则
  *
  */
 val opLogRegex =
-    """\[.*(\d{2}:\d{2}:\d{2}).*].*(?:DedicatedServer|MinecraftServer)/?]:\s\[?(.*)(Given.*|Opped.*|De-opped.*|Set.*Mode|Teleported.*|Gave.*|Made.*operator)""".toRegex()
+    """\[.*(?<time>\d{2}:\d{2}:\d{2}).*].*(?:DedicatedServer|MinecraftServer)/?]:\s\[?(?<name>.*?)(?>:\s)?(?<contents>Given.+?|Opped.+?|De-opped.+?|Set.+Mode|Teleported.+?|Gave.+?|Made.+operator)]?""".toRegex()
 
 /**
  * 玩家聊天正则
  *
  */
 val charMessageRegex =
-    """\[.*(\d{2}:\d{2}:\d{2}).*].*(?:DedicatedServer|MinecraftServer)/?]:\s<((?!\[吉祥物]亮亮|亮亮).*)>\s(.*)""".toRegex()
+    """\[.*(?<time>\d{2}:\d{2}:\d{2}).*].*(?:DedicatedServer|MinecraftServer)/?]:\s<(?<name>(?!\[吉祥物]亮亮|亮亮).*)>\s(?<msg>.*)""".toRegex()

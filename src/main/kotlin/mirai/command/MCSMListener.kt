@@ -240,8 +240,8 @@ object MCSMListener : SimpleListenerHost() {
           val opLogResult = opLogRegex.findAll(log)
         var out = ""
         opLogResult.forEach {
-            val (time, name, info) = it.destructured
-            out += "$time ${name.ifEmpty { "Server: " }}$info\n"
+            val (time, name, contents) = it.destructured
+            out += "$time ${name.ifEmpty { "Server: " }}$contents\n"
         }
         return out.trimEnd()
     }
