@@ -34,39 +34,36 @@ internal class MCSManagerApiTest() {
         remoteUuid = prop.getProperty("remoteUuid")
         api = RetrofitClient(url).getMCSManagerApi()
     }
+
     @Test
-    fun filesDownload(){
+    fun filesDownload() {
         runBlocking {
             val filesDownload = api.filesDownload(uuid, remoteUuid, key,"logs/latest.log").data!!
 
-            val log = URL(filesDownload.toDownloadUrl(apiUrl = url)).readText()
+            val log = URL(filesDownload.toDownloadUrl(apiUrl = url)).readText().toMinecraftLog()
 
-            val charMessageResult = charMessageRegex.findAll(log)
-            charMessageResult.forEach {
-                val (time,name, msg) = it.destructured
-                println("$time <$name> $msg")
+            log.forEach {
+                val result = it.toJoinTheExitGame()
+                if (result.isNotEmpty()) println(result)
             }
 
-            val opLogResult = opLogRegex.findAll(log)
-            opLogResult.forEach {
-                val (time, name, contents) = it.destructured
-                println("$time ${name.ifEmpty { "服务器" }}: $contents")
+            log.forEach {
+                val result = it.toCharMessageGame()
+                if (result.isNotEmpty()) println(result)
             }
 
-            val joinTheExitGameResult = joinTheExitGameRegex.findAll(log)
-            joinTheExitGameResult.forEach {
-                val (time, name, state) = it.destructured
-                println("$time $name ${if (state == "joined") "加入游戏" else "退出游戏"}")
+            log.forEach {
+                val result = it.toAdminLog()
+                if (result.isNotEmpty()) println(result)
             }
-
 
         }
     }
 
     @Test
-    fun filesList(){
+    fun filesList() {
         runBlocking {
-            val filesList = api.filesList(uuid, remoteUuid, key,"crash-reports").data!!
+            val filesList = api.filesList(uuid, remoteUuid, key, "crash-reports").data!!
             // 找出最新时间的日志
             val item = filesList.items.maxBy { it.toLocalDateTime() }
             println(item.name)

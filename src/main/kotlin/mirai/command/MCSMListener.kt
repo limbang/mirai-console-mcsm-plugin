@@ -23,6 +23,7 @@ import net.mamoe.mirai.message.data.buildForwardMessage
 import net.mamoe.mirai.utils.MiraiLogger
 import top.limbang.mcsm.RetrofitClient
 import top.limbang.mcsm.entity.Chat
+import top.limbang.mcsm.entity.MinecraftLog
 import top.limbang.mcsm.mirai.MCSM
 import top.limbang.mcsm.mirai.command.MCSMCompositeCommand.apiMap
 import top.limbang.mcsm.mirai.config.MCSMData.groupConfig
@@ -123,9 +124,9 @@ object MCSMListener : SimpleListenerHost() {
                 val log =
                     apiMap[instance.apiKey]!!.getInstanceLog(instance.uuid, instance.daemonUUID, instance.apiKey).data!!
                 try {
-                    val minecraftLog = log.toRemoveColorCodeMinecraftLog().last { it.message.indexOf("Overall") != -1 }
+                    val minecraftLog = log.toRemoveColorCodeMinecraftLog().last { it.contents.indexOf("Overall") != -1 }
                     if (minecraftLog.time >= time) {
-                        group.sendMessage(minecraftLog.message)
+                        group.sendMessage(minecraftLog.contents)
                         getSuccess = true
                     }
                 } catch (e: NoSuchElementException) {
@@ -175,7 +176,7 @@ object MCSMListener : SimpleListenerHost() {
                         it.time >= time && it.time.hour == time.hour && it.time.minute == time.minute
                     }.none {
                         // 过滤不包含 online
-                        it.message.contains("online") || it.message.contains("在线")
+                        it.contents.contains("online") || it.contents.contains("在线")
                     }
                     if (isFailure) {
                         group.sendMessage("获取在线人数失败,开始强行停止服务器...")
@@ -211,12 +212,12 @@ object MCSMListener : SimpleListenerHost() {
                 fileName = "logs/latest.log"
             ).data!!
 
-            val log = URL(filesDownload.toDownloadUrl(apiUrl = instance.apiUrl)).readText()
+            val logs = URL(filesDownload.toDownloadUrl(apiUrl = instance.apiUrl)).readText().toMinecraftLog()
 
             val forward = buildForwardMessage {
-                bot.id named "服务器玩家聊天消息" says charMessage(log).ifEmpty { "未找到匹配的玩家聊天消息." }
-                bot.id named "服务器管理员修改记录" says opLogMessage(log).ifEmpty { "未找到匹配的管理员修改记录." }
-                bot.id named "服务器玩家上下线记录" says joinTheExitGameMessage(log).ifEmpty { "未找到匹配的玩家上下线记录." }
+                bot.id named "服务器玩家聊天消息" says charMessage(logs).ifEmpty { "未找到匹配的玩家聊天消息." }
+                bot.id named "服务器管理员修改记录" says opLogMessage(logs).ifEmpty { "未找到匹配的管理员修改记录." }
+                bot.id named "服务器玩家上下线记录" says joinTheExitGameMessage(logs).ifEmpty { "未找到匹配的玩家上下线记录." }
             }.copy(
                 title = "分析日志结果",
                 preview = listOf("服务器玩家聊天消息", "服务器管理员修改记录", "服务器玩家上下线记录")
@@ -226,32 +227,29 @@ object MCSMListener : SimpleListenerHost() {
         }
     }
 
-    private fun charMessage(log: String): String {
-        val charMessageResult = charMessageRegex.findAll(log)
+    private fun charMessage(logs: List<MinecraftLog>): String {
         var out = ""
-        charMessageResult.forEach {
-            val (time, name, msg) = it.destructured
-            out += "$time <$name> $msg\n"
+        logs.forEach {
+            val result = it.toCharMessageGame()
+            if (result.isNotEmpty()) out += "$result\n"
         }
         return out.trimEnd()
     }
 
-    private fun opLogMessage(log: String): String {
-          val opLogResult = opLogRegex.findAll(log)
+    private fun opLogMessage(logs: List<MinecraftLog>): String {
         var out = ""
-        opLogResult.forEach {
-            val (time, name, contents) = it.destructured
-            out += "$time ${name.ifEmpty { "Server: " }}$contents\n"
+        logs.forEach {
+            val result = it.toAdminLog()
+            if (result.isNotEmpty()) out += "$result\n"
         }
         return out.trimEnd()
     }
 
-    private fun joinTheExitGameMessage(log: String): String {
-              val joinTheExitGameResult = joinTheExitGameRegex.findAll(log)
+    private fun joinTheExitGameMessage(logs: List<MinecraftLog>): String {
         var out = ""
-        joinTheExitGameResult.forEach {
-            val (time, name, state) = it.destructured
-            out += "$time $name ${if (state == "joined") "加入游戏" else "退出游戏"}\n"
+        logs.forEach {
+            val result = it.toJoinTheExitGame()
+            if (result.isNotEmpty()) out += "$result\n"
         }
         return out.trimEnd()
     }
@@ -287,7 +285,7 @@ object MCSMListener : SimpleListenerHost() {
             // 发送到 mclo
             val mclo = mcloApi.pasteLogFile(log)
 
-            if(!mclo.success) group.sendMessage(mclo.error!!)
+            if (!mclo.success) group.sendMessage(mclo.error!!)
             else group.sendMessage("崩溃报告:${mclo.url}")
         }
     }

@@ -11,9 +11,20 @@ package top.limbang.mcsm.entity
 
 import java.time.LocalTime
 
+/**
+ * Minecraft log
+ *
+ * @property time 时间
+ * @property thread 线程
+ * @property level log级别
+ * @property channels 通道 forge 特有
+ * @property contents 内容
+ * @constructor Create empty Minecraft log
+ */
 data class MinecraftLog(
     val time: LocalTime,
     val thread: String,
     val level: Level,
-    val message: String
+    val channels: String,
+    val contents: String
 )

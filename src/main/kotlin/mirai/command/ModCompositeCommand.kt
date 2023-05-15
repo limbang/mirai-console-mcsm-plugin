@@ -44,7 +44,7 @@ object ModCompositeCommand : CompositeCommand(
             ).data!!
                 .toRemoveColorCodeMinecraftLog()
                 .filter { it.time >= time && it.time.hour == time.hour && it.time.minute == time.minute }
-                .filter { "Initializing".toRegex().containsMatchIn(it.message) }
+                .filter { "Initializing".toRegex().containsMatchIn(it.contents) }
             if (result.isEmpty()) {
                 sendMessage("未安装 spark 模组")
                 return
@@ -57,8 +57,8 @@ object ModCompositeCommand : CompositeCommand(
                 ).data!!
                     .toRemoveColorCodeMinecraftLog()
                     .filter { it.time >= time }
-                    .filter { "https".toRegex().containsMatchIn(it.message) }
-                if (sparkResult.isNotEmpty()) sendMessage(sparkResult.last().message)
+                    .filter { "https".toRegex().containsMatchIn(it.contents) }
+                if (sparkResult.isNotEmpty()) sendMessage(sparkResult.last().contents)
             } while (sparkResult.isEmpty())
         }.onFailure {
             sendMessage(it.localizedMessage)

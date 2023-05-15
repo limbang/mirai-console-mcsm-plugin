@@ -341,8 +341,8 @@ object MCSMCompositeCommand : CompositeCommand(
             getInstanceLog(instance.uuid, instance.daemonUUID, instance.apiKey).data!!
                 .toRemoveColorCodeMinecraftLog()
                 .filter { it.time >= time && it.time.hour == time.hour && it.time.minute == time.minute }
-                .filter { !"<.*>".toRegex().containsMatchIn(it.message) }
-                .forEach { message += "${it.message}\n" }
+                .filter { !"<.*>".toRegex().containsMatchIn(it.contents) }
+                .forEach { message += "${it.contents}\n" }
             return if (message.isNotEmpty()) message.substring(0, message.length - 1) else message
         }.onFailure { return it.localizedMessage }
         return ""
