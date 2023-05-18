@@ -15,11 +15,11 @@ import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import net.mamoe.mirai.console.command.CommandSender.Companion.toCommandSender
 import net.mamoe.mirai.console.permission.PermissionService.Companion.hasPermission
+import net.mamoe.mirai.contact.Contact.Companion.sendImage
 import net.mamoe.mirai.contact.nameCardOrNick
 import net.mamoe.mirai.event.EventHandler
 import net.mamoe.mirai.event.SimpleListenerHost
 import net.mamoe.mirai.event.events.GroupMessageEvent
-import net.mamoe.mirai.message.data.buildForwardMessage
 import net.mamoe.mirai.utils.MiraiLogger
 import top.limbang.mcsm.RetrofitClient
 import top.limbang.mcsm.entity.Chat
@@ -214,16 +214,18 @@ object MCSMListener : SimpleListenerHost() {
 
             val logs = URL(filesDownload.toDownloadUrl(apiUrl = instance.apiUrl)).readText().toMinecraftLog()
 
-            val forward = buildForwardMessage {
-                bot.id named "服务器玩家聊天消息" says charMessage(logs).ifEmpty { "未找到匹配的玩家聊天消息." }
-                bot.id named "服务器管理员修改记录" says opLogMessage(logs).ifEmpty { "未找到匹配的管理员修改记录." }
-                bot.id named "服务器玩家上下线记录" says joinTheExitGameMessage(logs).ifEmpty { "未找到匹配的玩家上下线记录." }
-            }.copy(
-                title = "分析日志结果",
-                preview = listOf("服务器玩家聊天消息", "服务器管理员修改记录", "服务器玩家上下线记录")
-            )
+            charMessage(logs).run {
+                if (isNotEmpty()) group.sendImage("服务器玩家聊天记录：\n$this".toImage().toInput(), "png")
+            }
 
-            group.sendMessage(forward)
+            joinTheExitGameMessage(logs).run {
+                if (isNotEmpty()) group.sendImage("服务器玩家上下线记录：\n$this".toImage().toInput(), "png")
+
+            }
+
+            opLogMessage(logs).run {
+                if (isNotEmpty()) group.sendImage("服务器管理员修改记录：\n$this".toImage().toInput(), "png")
+            }
         }
     }
 
