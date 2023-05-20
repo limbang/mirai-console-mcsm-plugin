@@ -114,13 +114,21 @@ private val SPEED_UP_TIME_REGEX = """^Added (\d+) to the time""".toRegex()
 private val OP_DEOP_KILL_BAN_PARDAN_REGEX = """^(De-opped|Opped|Killed|Banned player|Unbanned player) (.+)""".toRegex()
 
 /**
- * 提出游戏正则
+ * 踢出游戏正则
  */
 private val KICKED_REGEX = """^Kicked (.+) from the game(?::\s)?(.*)""".toRegex()
 
+/**
+ * 给予经验正则
+ */
 private val GAVE_XP_REGEX = """^(?:Gave|Given) (.+) levels to ([^]]+)""".toRegex()
 
+/**
+ * 给予物品正则
+ */
 private val GATE_ITEM_REGEX = """^(?:Gave|Given)\s+(.+) \* (\d+) to ([^]]+)""".toRegex()
+
+private val GATE_ITEM_REGEX_2 = """^(?:Gave|Given) (\d+)\s+(.+) to ([^]]+)""".toRegex()
 
 /**
  * 转成管理员操作日志
@@ -179,6 +187,10 @@ fun MinecraftLog.toAdminLog(): String {
         return "$time ${name.ifEmpty { "服务器" }}: 给予 $player $item * $quantity"
     }
 
+    GATE_ITEM_REGEX_2.find(content)?.let {
+        val (quantity, item, player) = it.destructured
+        return "$time ${name.ifEmpty { "服务器" }}: 给予 $player $item * $quantity"
+    }
 
-    return contents
+    return "$time $contents"
 }
