@@ -13,9 +13,10 @@ import kotlinx.coroutines.runBlocking
 import top.limbang.mcsm.RetrofitClient
 import top.limbang.mcsm.service.MCSManagerApi
 import top.limbang.mcsm.utils.*
-import java.io.FileInputStream
+import java.io.*
 import java.net.URL
 import java.util.*
+import java.util.zip.GZIPInputStream
 import kotlin.test.Test
 
 internal class MCSManagerApiTest() {
@@ -38,7 +39,7 @@ internal class MCSManagerApiTest() {
     @Test
     fun filesDownload() {
         runBlocking {
-            val filesDownload = api.filesDownload(uuid, remoteUuid, key,"logs/latest.log").data!!
+            val filesDownload = api.filesDownload(uuid, remoteUuid, key, "logs/latest.log").data!!
 
             val log = URL(filesDownload.toDownloadUrl(apiUrl = url)).readText().toMinecraftLog()
 
@@ -67,6 +68,34 @@ internal class MCSManagerApiTest() {
             // 找出最新时间的日志
             val item = filesList.items.maxBy { it.toLocalDateTime() }
             println(item.name)
+        }
+    }
+
+    @Test
+    fun zipFile() {
+        runBlocking {
+            val filesList = api.filesList(uuid, remoteUuid, key, "logs").data!!
+            val regex = """2023-05-20-\d+.log.gz""".toRegex()
+
+            var concatStream: InputStream = ByteArrayInputStream(ByteArray(0))
+
+            filesList.items.filter {
+                regex.find(it.name) != null
+            }.forEach {
+                // 获取下载链接
+                val url = api.filesDownload(uuid, remoteUuid, key, "logs/${it.name}").data!!.toDownloadUrl(url)
+                val fileStream = GZIPInputStream(URL(url).openStream())
+                concatStream = SequenceInputStream(concatStream, fileStream)
+            }
+
+            val reader = BufferedReader(InputStreamReader(concatStream))
+
+
+            val log = reader.readText().toMinecraftLog()
+            log.forEach {
+                val result = it.toAdminLog()
+                if (result.isNotEmpty()) println(result)
+            }
         }
     }
 }
