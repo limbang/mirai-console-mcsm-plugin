@@ -196,8 +196,12 @@ object MCSMListener : SimpleListenerHost() {
         }
     }
 
+    /**
+     * 获取指定服务器的最新日志
+     *
+     */
     @EventHandler
-    fun GroupMessageEvent.playerChatMessages() {
+    fun GroupMessageEvent.getLatestLog() {
         if (toCommandSender().hasPermission(MCSM.parentPermission).not()) return
         val instances = groupInstances[group.id] ?: return
         val content = message.contentToString()
@@ -214,18 +218,28 @@ object MCSMListener : SimpleListenerHost() {
 
             val logs = URL(filesDownload.toDownloadUrl(apiUrl = instance.apiUrl)).readText().toMinecraftLog()
 
-            charMessage(logs).run {
-                if (isNotEmpty()) group.sendImage("服务器玩家聊天记录：\n$this".toImage().toInput(), "png")
-            }
+            sendMinecraftLog(logs)
+        }
+    }
 
-            joinTheExitGameMessage(logs).run {
-                if (isNotEmpty()) group.sendImage("服务器玩家上下线记录：\n$this".toImage().toInput(), "png")
+    /**
+     * 向群里发送 Minecraft 的日志
+     *
+     * @param logs
+     */
+    private suspend fun GroupMessageEvent.sendMinecraftLog(logs: List<MinecraftLog>) {
 
-            }
+        charMessage(logs).run {
+            if (isNotEmpty()) group.sendImage("服务器玩家聊天记录：\n$this".toImage().toInput(), "png")
+        }
 
-            opLogMessage(logs).run {
-                if (isNotEmpty()) group.sendImage("服务器管理员修改记录：\n$this".toImage().toInput(), "png")
-            }
+        joinTheExitGameMessage(logs).run {
+            if (isNotEmpty()) group.sendImage("服务器玩家上下线记录：\n$this".toImage().toInput(), "png")
+
+        }
+
+        opLogMessage(logs).run {
+            if (isNotEmpty()) group.sendImage("服务器管理员修改记录：\n$this".toImage().toInput(), "png")
         }
     }
 
