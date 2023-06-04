@@ -26,13 +26,17 @@ import top.limbang.mcsm.entity.Chat
 import top.limbang.mcsm.entity.MinecraftLog
 import top.limbang.mcsm.mirai.MCSM
 import top.limbang.mcsm.mirai.command.MCSMCompositeCommand.apiMap
+import top.limbang.mcsm.mirai.config.GroupInstance
 import top.limbang.mcsm.mirai.config.MCSMData.groupConfig
 import top.limbang.mcsm.mirai.config.MCSMData.groupInstances
+import top.limbang.mcsm.model.FilesList
 import top.limbang.mcsm.utils.*
+import java.io.*
 import java.net.URL
 import java.time.Instant
 import java.time.LocalTime
 import java.time.ZoneId
+import java.util.zip.GZIPInputStream
 import kotlin.coroutines.CoroutineContext
 
 object MCSMListener : SimpleListenerHost() {
@@ -209,17 +213,86 @@ object MCSMListener : SimpleListenerHost() {
         val (name) = match.destructured
         val instance = instances.find { it.name == name.trim() } ?: return
         launch {
-            val filesDownload = apiMap[instance.apiKey]!!.filesDownload(
+            val url = getDownloadUrl(instance, "logs/latest.log")
+            val logs = URL(url).readText().toMinecraftLog()
+            sendMinecraftLog(logs)
+        }
+    }
+
+    /**
+     * 获取指定服务器的指定日期日志
+     *
+     */
+    @EventHandler
+    fun GroupMessageEvent.getSpecifiedDateLog() {
+        if (toCommandSender().hasPermission(MCSM.parentPermission).not()) return
+        val instances = groupInstances[group.id] ?: return
+        val content = message.contentToString()
+        val (name,date)  = """^分析指定日志\s?(.*)\s(\d{4}-\d{2}-\d{2})""".toRegex().find(content)?.destructured ?: return
+        val instance = instances.find { it.name == name.trim() } ?: return
+        launch {
+            sendMinecraftLog(getLogs(instance,date))
+        }
+    }
+
+    /**
+     * 获取指定目录的文件列表
+     *
+     * @param instance 实例信息
+     * @return 文件列表
+     * @throws IOException 获取文件列表时可能发生 IO 异常
+     */
+    @Throws(IOException::class)
+    private suspend fun getFilesList(instance: GroupInstance,target:String): FilesList {
+        return apiMap[instance.apiKey]?.runCatching {
+            filesList(
                 uuid = instance.uuid,
                 remoteUuid = instance.daemonUUID,
                 apikey = instance.apiKey,
-                fileName = "logs/latest.log"
-            ).data!!
+                target = target
+            )
+        }?.getOrNull()?.data ?: throw IOException("无法获取文件列表")
+    }
 
-            val logs = URL(filesDownload.toDownloadUrl(apiUrl = instance.apiUrl)).readText().toMinecraftLog()
+    /**
+     * 获取指定文件的下载链接
+     *
+     * @param instance 实例信息
+     * @param fileName 文件名称
+     * @return 下载链接
+     * @throws IOException 获取下载链接时可能发生 IO 异常
+     */
+    @Throws(IOException::class)
+    private suspend fun getDownloadUrl(instance: GroupInstance, fileName: String): String {
+        return apiMap[instance.apiKey]?.runCatching {
+            filesDownload(
+                uuid = instance.uuid,
+                remoteUuid = instance.daemonUUID,
+                apikey = instance.apiKey,
+                fileName = fileName
+            )
+        }?.getOrNull()?.data?.toDownloadUrl(instance.apiUrl) ?: throw IOException("无法获取下载链接")
+    }
 
-            sendMinecraftLog(logs)
+    private suspend fun getLogs(instance: GroupInstance, date: String): List<MinecraftLog> {
+        // 1. 构建日志文件名正则表达式
+        val regex = """$date-\d+.log.gz""".toRegex()
+
+        // 2. 获取指定目录下的所有文件列表
+        val filesList = getFilesList(instance, "logs")
+
+        // 3. 从所有符合条件的文件中下载日志数据，并将它们拼接为一个流
+        var concatStream: InputStream = ByteArrayInputStream(ByteArray(0))
+
+        filesList.items.filter { regex.find(it.name) != null }.forEach {
+            val url = getDownloadUrl(instance, "logs/${it.name}")
+            // 使用 GZIPInputStream 解压缩并下载文件流，并与之前的文件流进行拼接
+            val fileStream = GZIPInputStream(URL(url).openStream())
+            concatStream = SequenceInputStream(concatStream, fileStream)
         }
+
+        // 4. 将拼接后的流解析为 MinecraftLog 对象
+        return BufferedReader(InputStreamReader(concatStream)).use { it.readText() }.toMinecraftLog()
     }
 
     /**
