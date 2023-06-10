@@ -303,15 +303,17 @@ object MCSMListener : SimpleListenerHost() {
     private suspend fun GroupMessageEvent.sendMinecraftLog(logs: List<MinecraftLog>) {
 
         charMessage(logs).run {
+            delay(60)
             if (isNotEmpty()) group.sendImage("服务器玩家聊天记录：\n$this".toImage().toInput(), "png")
         }
 
         joinTheExitGameMessage(logs).run {
+            delay(60)
             if (isNotEmpty()) group.sendImage("服务器玩家上下线记录：\n$this".toImage().toInput(), "png")
-
         }
 
         opLogMessage(logs).run {
+            delay(60)
             if (isNotEmpty()) group.sendImage("服务器管理员修改记录：\n$this".toImage().toInput(), "png")
         }
     }
