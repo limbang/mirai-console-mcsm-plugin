@@ -29,7 +29,7 @@ class StatusInterceptor : Interceptor {
         // HTTP 不在 200-300 的错误状态码处理
         if (response.isSuccessful.not()) {
             val errorMessage = try {
-                Json.decodeFromString<MCSMResponse<String>>(getResponseBody(response.body!!)).data!!
+                Json.decodeFromString<MCSMResponse<String>>(getResponseBody(response.body)).data!!
             } catch (e: SerializationException) {
                 "序列化错误,服务器异常."
             }
