@@ -34,7 +34,6 @@ import top.limbang.mcsm.utils.*
 import java.io.*
 import java.net.URL
 import java.time.Instant
-import java.time.LocalTime
 import java.time.ZoneId
 import java.util.zip.GZIPInputStream
 import kotlin.coroutines.CoroutineContext
@@ -111,11 +110,11 @@ object MCSMListener : SimpleListenerHost() {
         val (name) = match.destructured
         val instance = instances.find { it.name == name.trim() } ?: return
         launch {
-            apiMap[instance.apiKey]!!.sendCommandInstance(
+            val response = apiMap[instance.apiKey]!!.sendCommandInstance(
                 instance.uuid, instance.daemonUUID, instance.apiKey, "forge tps"
             )
-            // 获取当前时间,忽略毫秒
-            val time = LocalTime.now().withNano(0)
+            // 获取命令发送成功的时间戳以默认时区转成时间
+            val time = Instant.ofEpochMilli(response.time).atZone(ZoneId.systemDefault()).toLocalTime().withNano(0)
             var getSuccess = false
             var cumulativeTime = 0
             do {
