@@ -32,7 +32,7 @@ object MCSM : KotlinPlugin(
     JvmPluginDescription(
         id = "top.limbang.mcsm",
         name = "MCSManager API",
-        version = "1.1.4",
+        version = "1.1.5",
     ) {
         author("limbang")
         info("MCSManager api 插件")
