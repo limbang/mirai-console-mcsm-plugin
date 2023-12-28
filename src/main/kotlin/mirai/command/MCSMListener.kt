@@ -96,10 +96,6 @@ object MCSMListener : SimpleListenerHost() {
         }
     }
 
-    /**
-     * Forge tps
-     *
-     */
     @EventHandler
     fun GroupMessageEvent.forgeTps() {
         val config = groupConfig[group.id] ?: return
@@ -110,11 +106,14 @@ object MCSMListener : SimpleListenerHost() {
         val (name) = match.destructured
         val instance = instances.find { it.name == name.trim() } ?: return
         launch {
-            val response = apiMap[instance.apiKey]!!.sendCommandInstance(
+            val responseForge = apiMap[instance.apiKey]!!.sendCommandInstance(
                 instance.uuid, instance.daemonUUID, instance.apiKey, "forge tps"
             )
+            val responseSpark = apiMap[instance.apiKey]!!.sendCommandInstance(
+                instance.uuid, instance.daemonUUID, instance.apiKey, "spark tps"
+            )
             // 获取命令发送成功的时间戳以默认时区转成时间
-            val time = Instant.ofEpochMilli(response.time).atZone(ZoneId.systemDefault()).toLocalTime().withNano(0)
+            val time = Instant.ofEpochMilli(responseForge.time).atZone(ZoneId.systemDefault()).toLocalTime().withNano(0)
             var getSuccess = false
             var cumulativeTime = 0
             do {
@@ -127,11 +126,17 @@ object MCSMListener : SimpleListenerHost() {
                 val log =
                     apiMap[instance.apiKey]!!.getInstanceLog(instance.uuid, instance.daemonUUID, instance.apiKey).data!!
                 try {
-                    val minecraftLog = log.toRemoveColorCodeMinecraftLog().last { it.contents.indexOf("Overall") != -1 }
-                    if (minecraftLog.time >= time) {
-                        group.sendMessage(minecraftLog.contents)
-                        getSuccess = true
-                    }
+                    var msg = ""
+                    log.toRemoveColorCodeMinecraftLog()
+                        .filter { // 匹配 forge spark
+                            """(\[⚡]\s(TPS|\s[0-9.*]*,)|Overall)""".toRegex().containsMatchIn(it.contents)
+                        }.filter {
+                            it.time >= time && it.time.hour == time.hour && it.time.minute == time.minute
+                        }.forEach {
+                            msg += it.contents + "\n"
+                            getSuccess = true
+                        }
+                    if (msg.isNotEmpty()) group.sendMessage(msg.substring(0, msg.length - 1))
                 } catch (e: NoSuchElementException) {
                     continue
                 }
@@ -227,10 +232,11 @@ object MCSMListener : SimpleListenerHost() {
         if (toCommandSender().hasPermission(MCSM.parentPermission).not()) return
         val instances = groupInstances[group.id] ?: return
         val content = message.contentToString()
-        val (name,date)  = """^分析指定日志\s?(.*)\s(\d{4}-\d{2}-\d{2})""".toRegex().find(content)?.destructured ?: return
+        val (name, date) = """^分析指定日志\s?(.*)\s(\d{4}-\d{2}-\d{2})""".toRegex().find(content)?.destructured
+            ?: return
         val instance = instances.find { it.name == name.trim() } ?: return
         launch {
-            sendMinecraftLog(getLogs(instance,date))
+            sendMinecraftLog(getLogs(instance, date))
         }
     }
 
@@ -242,7 +248,7 @@ object MCSMListener : SimpleListenerHost() {
      * @throws IOException 获取文件列表时可能发生 IO 异常
      */
     @Throws(IOException::class)
-    private suspend fun getFilesList(instance: GroupInstance,target:String): FilesList {
+    private suspend fun getFilesList(instance: GroupInstance, target: String): FilesList {
         return apiMap[instance.apiKey]?.runCatching {
             filesList(
                 uuid = instance.uuid,
