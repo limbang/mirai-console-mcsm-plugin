@@ -44,7 +44,7 @@ object ModCompositeCommand : CompositeCommand(
             ).data!!
                 .toRemoveColorCodeMinecraftLog()
                 .filter { it.time >= time && it.time.hour == time.hour && it.time.minute == time.minute }
-                .filter { "Initializing".toRegex().containsMatchIn(it.contents) }
+                .filter { """\[⚡]\s(Initializing|Starting)""".toRegex().containsMatchIn(it.contents) }
             if (result.isEmpty()) {
                 sendMessage("未安装 spark 模组")
                 return
