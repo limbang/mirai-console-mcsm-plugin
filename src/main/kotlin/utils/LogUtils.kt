@@ -15,10 +15,10 @@ import java.time.LocalTime
 
 
 /**
- * 删除日志的颜色代码
+ * 删除终端控制和颜色转义
  */
-fun String.removeColorCodeLog(): String {
-    return """\[[\d;]*?[mK]""".toRegex().replace(this, "")
+fun String.removeAnsiEscapeSequences(): String {
+    return """\[(?:\?25[lh]|[HK]|\d*m|\d*[ABCDJK])""".toRegex().replace(this, "")
 }
 
 private val minecraftLogRegex =
@@ -52,7 +52,7 @@ fun String.toMinecraftLog(): List<MinecraftLog> {
  * 把日志转成删除颜色代码后的 [MinecraftLog]
  *
  */
-fun String.toRemoveColorCodeMinecraftLog() = this.removeColorCodeLog().toMinecraftLog()
+fun String.toRemoveColorCodeMinecraftLog() = this.removeAnsiEscapeSequences().toMinecraftLog()
 
 /**
  * 加入退出游戏正则
