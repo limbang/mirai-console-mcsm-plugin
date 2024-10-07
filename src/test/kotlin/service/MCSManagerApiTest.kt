@@ -18,12 +18,13 @@ import java.net.URL
 import java.util.*
 import java.util.zip.GZIPInputStream
 import kotlin.test.Test
+import kotlin.test.assertNotNull
 
 internal class MCSManagerApiTest() {
     private val api: MCSManagerApi
     private val key: String
     private val uuid: String
-    private val remoteUuid: String
+    private val daemonId: String
     private val url: String
 
     init {
@@ -32,14 +33,38 @@ internal class MCSManagerApiTest() {
         url = prop.getProperty("url")
         key = prop.getProperty("key")
         uuid = prop.getProperty("uuid")
-        remoteUuid = prop.getProperty("remoteUuid")
+        daemonId = prop.getProperty("remoteUuid")
         api = RetrofitClient(url).getMCSManagerApi()
+    }
+
+    @Test
+    fun getAllDaemonList() {
+        runBlocking {
+           val response = api.getAllDaemonList(key)
+            assertNotNull(response.data)
+        }
+    }
+
+    @Test
+    fun openInstance() {
+        runBlocking {
+            val response = api.openInstance(uuid, daemonId,key)
+            assertNotNull(response.data)
+        }
+    }
+
+    @Test
+    fun sendCommandInstance() {
+        runBlocking {
+            val response = api.sendCommandInstance(uuid, daemonId,key,"list")
+            assertNotNull(response.data)
+        }
     }
 
     @Test
     fun filesDownload() {
         runBlocking {
-            val filesDownload = api.filesDownload(uuid, remoteUuid, key, "logs/latest.log").data!!
+            val filesDownload = api.filesDownload(uuid, daemonId, key, "logs/latest.log").data!!
 
             val log = URL(filesDownload.toDownloadUrl(apiUrl = url)).readText().toMinecraftLog()
 
@@ -64,7 +89,7 @@ internal class MCSManagerApiTest() {
     @Test
     fun filesList() {
         runBlocking {
-            val filesList = api.filesList(uuid, remoteUuid, key, "crash-reports").data!!
+            val filesList = api.filesList(uuid, daemonId, key, "crash-reports").data!!
             // 找出最新时间的日志
             val item = filesList.items.maxBy { it.toLocalDateTime() }
             println(item.name)
@@ -74,7 +99,7 @@ internal class MCSManagerApiTest() {
     @Test
     fun zipFile() {
         runBlocking {
-            val filesList = api.filesList(uuid, remoteUuid, key, "logs").data!!
+            val filesList = api.filesList(uuid, daemonId, key, "logs").data!!
             val regex = """2023-05-20-\d+.log.gz""".toRegex()
 
             var concatStream: InputStream = ByteArrayInputStream(ByteArray(0))
@@ -83,7 +108,7 @@ internal class MCSManagerApiTest() {
                 regex.find(it.name) != null
             }.forEach {
                 // 获取下载链接
-                val url = api.filesDownload(uuid, remoteUuid, key, "logs/${it.name}").data!!.toDownloadUrl(url)
+                val url = api.filesDownload(uuid, daemonId, key, "logs/${it.name}").data!!.toDownloadUrl(url)
                 val fileStream = GZIPInputStream(URL(url).openStream())
                 concatStream = SequenceInputStream(concatStream, fileStream)
             }

@@ -12,4 +12,19 @@ package top.limbang.mcsm.model
 import kotlinx.serialization.Serializable
 
 @Serializable
-data class FilesDownload(val password: String, val addr: String)
+data class FilesListResponse(
+    val items: List<Item>,
+    val page: Int,
+    val pageSize: Int,
+    val total: Int,
+    val absolutePath: String // 绝对路径
+){
+    @Serializable
+    data class Item(
+        val name: String,
+        val size: Int,
+        val time: String,
+        val type: Int,
+        val mode: Int // Linux file permission
+    )
+}

@@ -29,7 +29,7 @@ import top.limbang.mcsm.mirai.command.MCSMCompositeCommand.apiMap
 import top.limbang.mcsm.mirai.config.GroupInstance
 import top.limbang.mcsm.mirai.config.MCSMData.groupConfig
 import top.limbang.mcsm.mirai.config.MCSMData.groupInstances
-import top.limbang.mcsm.model.FilesList
+import top.limbang.mcsm.model.FilesListResponse
 import top.limbang.mcsm.utils.*
 import java.io.*
 import java.net.URL
@@ -248,11 +248,11 @@ object MCSMListener : SimpleListenerHost() {
      * @throws IOException 获取文件列表时可能发生 IO 异常
      */
     @Throws(IOException::class)
-    private suspend fun getFilesList(instance: GroupInstance, target: String): FilesList {
+    private suspend fun getFilesList(instance: GroupInstance, target: String): FilesListResponse {
         return apiMap[instance.apiKey]?.runCatching {
             filesList(
                 uuid = instance.uuid,
-                remoteUuid = instance.daemonUUID,
+                daemonId = instance.daemonUUID,
                 apikey = instance.apiKey,
                 target = target
             )
@@ -272,7 +272,7 @@ object MCSMListener : SimpleListenerHost() {
         return apiMap[instance.apiKey]?.runCatching {
             filesDownload(
                 uuid = instance.uuid,
-                remoteUuid = instance.daemonUUID,
+                daemonId = instance.daemonUUID,
                 apikey = instance.apiKey,
                 fileName = fileName
             )
@@ -362,7 +362,7 @@ object MCSMListener : SimpleListenerHost() {
             // 获取文件列表
             val filesList = apiMap[instance.apiKey]!!.filesList(
                 uuid = instance.uuid,
-                remoteUuid = instance.daemonUUID,
+                daemonId = instance.daemonUUID,
                 apikey = instance.apiKey,
                 target = "crash-reports"
             ).data!!
@@ -372,7 +372,7 @@ object MCSMListener : SimpleListenerHost() {
             // 获取下载日志地址
             val filesDownload = apiMap[instance.apiKey]!!.filesDownload(
                 uuid = instance.uuid,
-                remoteUuid = instance.daemonUUID,
+                daemonId = instance.daemonUUID,
                 apikey = instance.apiKey,
                 fileName = "crash-reports/${item.name}"
             ).data!!

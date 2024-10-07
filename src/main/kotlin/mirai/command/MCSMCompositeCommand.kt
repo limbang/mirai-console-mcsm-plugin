@@ -24,7 +24,7 @@ import top.limbang.mcsm.mirai.config.GroupInstance
 import top.limbang.mcsm.mirai.config.MCSMData.groupInstances
 import top.limbang.mcsm.mirai.config.MCSMData.mcsmList
 import top.limbang.mcsm.model.MCSManager
-import top.limbang.mcsm.model.Tasks
+import top.limbang.mcsm.model.TasksRequest
 import top.limbang.mcsm.service.MCSManagerApi
 import top.limbang.mcsm.utils.toRemoveColorCodeMinecraftLog
 import top.limbang.mirai.event.GroupRenameEvent
@@ -241,7 +241,7 @@ object MCSMCompositeCommand : CompositeCommand(
         runCatching {
             apiMap[instance.apiKey]!!.openInstance(
                 uuid = instance.uuid,
-                remoteUuid = instance.daemonUUID,
+                daemonId = instance.daemonUUID,
                 apikey = instance.apiKey
             )
         }.onSuccess {
@@ -259,7 +259,7 @@ object MCSMCompositeCommand : CompositeCommand(
         runCatching {
             apiMap[instance.apiKey]!!.stopInstance(
                 uuid = instance.uuid,
-                remoteUuid = instance.daemonUUID,
+                daemonId = instance.daemonUUID,
                 apikey = instance.apiKey
             )
         }.onSuccess {
@@ -276,7 +276,7 @@ object MCSMCompositeCommand : CompositeCommand(
         runCatching {
             apiMap[instance.apiKey]!!.killInstance(
                 uuid = instance.uuid,
-                remoteUuid = instance.daemonUUID,
+                daemonId = instance.daemonUUID,
                 apikey = instance.apiKey
             )
         }.onSuccess {
@@ -293,7 +293,7 @@ object MCSMCompositeCommand : CompositeCommand(
         runCatching {
             apiMap[instance.apiKey]!!.restartInstance(
                 uuid = instance.uuid,
-                remoteUuid = instance.daemonUUID,
+                daemonId = instance.daemonUUID,
                 apikey = instance.apiKey
             )
         }.onSuccess {
@@ -355,7 +355,7 @@ object MCSMCompositeCommand : CompositeCommand(
     ) {
         if (isNotGroup()) return
         val instance = getInstance(name)
-        val tasks = Tasks(name = tasksName, count = count, time = time, payload = spliceVararg(command))
+        val tasks = TasksRequest(name = tasksName, count = count, time = time, payload = spliceVararg(command))
         runCatching {
             apiMap[instance.apiKey]!!.createScheduledTasks(
                 instance.uuid,

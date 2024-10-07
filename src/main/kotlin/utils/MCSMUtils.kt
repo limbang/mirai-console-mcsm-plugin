@@ -9,8 +9,8 @@
 
 package top.limbang.mcsm.utils
 
-import top.limbang.mcsm.model.FilesDownload
-import top.limbang.mcsm.model.FilesList
+import top.limbang.mcsm.model.FilesDownloadResponse
+import top.limbang.mcsm.model.FilesListResponse
 import java.text.SimpleDateFormat
 import java.time.LocalDateTime
 import java.time.ZoneId
@@ -21,7 +21,7 @@ import java.util.*
  *
  * @return url
  */
-fun FilesDownload.toDownloadUrl(apiUrl: String, fileName: String = "latest.log"): String {
+fun FilesDownloadResponse.toDownloadUrl(apiUrl: String, fileName: String = "latest.log"): String {
 
     val address = when {
         addr.indexOf("wss://") != -1 -> addr.replace("wss://", "https://")
@@ -38,7 +38,7 @@ fun FilesDownload.toDownloadUrl(apiUrl: String, fileName: String = "latest.log")
  * 将字符串解析为 Date 对象，并转换为 LocalDateTime 对象
  *
  */
-fun FilesList.Item.toLocalDateTime(): LocalDateTime {
+fun FilesListResponse.Item.toLocalDateTime(): LocalDateTime {
     val dateFormat = SimpleDateFormat("EEE MMM dd yyyy HH:mm:ss z", Locale.US)
     val dataTime = time.replace("GMT", "").replace("""\(.*\)""".toRegex(), "")
     val date = dateFormat.parse(dataTime)
