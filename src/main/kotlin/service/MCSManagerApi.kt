@@ -166,4 +166,19 @@ interface MCSManagerApi {
         @Query("page_size") pageSize: Int = 40,
     ): MCSMResponse<FilesListResponse>
 
+    /**
+     * 获取文件内容/更新文件内容
+     *
+     * @param uuid
+     * @param daemonId
+     * @param apikey
+     * @return
+     */
+    @PUT("/api/files/")
+    suspend fun files(
+        @Query("uuid") uuid: String,
+        @Query("daemonId") daemonId: String,
+        @Query("apikey") apikey: String,
+        @Body body: FilesRequest
+    ): MCSMResponse<String>
 }

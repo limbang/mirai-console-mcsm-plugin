@@ -25,6 +25,7 @@ class RetrofitClient(
     format: Json = Json {
         ignoreUnknownKeys = true
         encodeDefaults = true
+        explicitNulls = false
     }
 ) {
 
