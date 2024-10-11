@@ -12,14 +12,18 @@ package top.limbang.mcsm.model
 import kotlinx.serialization.Serializable
 
 /**
- * ### 获取文件/更新文件请求
+ * ### 获取文件请求
  *
  * @property target 文件路径
- * @property text 文件内容为空时为获取文件内容
- * @constructor Create empty Files request
  */
 @Serializable
-data class FilesRequest(
-    val target: String,
-    val text: String? = null
-)
+data class GetFilesRequest(val target: String)
+
+/**
+ * ### 更新文件请求
+ *
+ * @property target 文件路径
+ * @property text 文件内容
+ */
+@Serializable
+data class UpdateFilesRequest(val target: String, val text: String)

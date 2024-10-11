@@ -167,7 +167,7 @@ interface MCSManagerApi {
     ): MCSMResponse<FilesListResponse>
 
     /**
-     * 获取文件内容/更新文件内容
+     * ### 获取文件内容
      *
      * @param uuid
      * @param daemonId
@@ -175,10 +175,26 @@ interface MCSManagerApi {
      * @return
      */
     @PUT("/api/files/")
-    suspend fun files(
+    suspend fun getFile(
         @Query("uuid") uuid: String,
         @Query("daemonId") daemonId: String,
         @Query("apikey") apikey: String,
-        @Body body: FilesRequest
+        @Body body: GetFilesRequest
     ): MCSMResponse<String>
+
+     /**
+     * ### 更新文件内容
+     *
+     * @param uuid
+     * @param daemonId
+     * @param apikey
+     * @return
+     */
+    @PUT("/api/files/")
+    suspend fun updateFile(
+        @Query("uuid") uuid: String,
+        @Query("daemonId") daemonId: String,
+        @Query("apikey") apikey: String,
+        @Body body: UpdateFilesRequest
+    ): MCSMResponse<Boolean>
 }

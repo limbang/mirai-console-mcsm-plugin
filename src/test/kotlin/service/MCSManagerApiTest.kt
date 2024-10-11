@@ -11,7 +11,7 @@ package service
 
 import kotlinx.coroutines.runBlocking
 import top.limbang.mcsm.RetrofitClient
-import top.limbang.mcsm.model.FilesRequest
+import top.limbang.mcsm.model.GetFilesRequest
 import top.limbang.mcsm.service.MCSManagerApi
 import top.limbang.mcsm.utils.*
 import java.io.*
@@ -128,7 +128,7 @@ internal class MCSManagerApiTest() {
     @Test
     fun files() {
         runBlocking {
-            val whitelist = api.files(uuid, daemonId, key, FilesRequest("whitelist.json")).data!!
+            val whitelist = api.getFile(uuid, daemonId, key, GetFilesRequest("whitelist.json")).data!!
             println(whitelist)
         }
     }
