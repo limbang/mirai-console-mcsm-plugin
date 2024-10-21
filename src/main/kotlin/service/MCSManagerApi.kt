@@ -164,6 +164,7 @@ interface MCSManagerApi {
         @Query("target") target: String,
         @Query("page") page: Int = 0,
         @Query("page_size") pageSize: Int = 40,
+        @Query("file_name") fileName: String = ""
     ): MCSMResponse<FilesListResponse>
 
     /**
