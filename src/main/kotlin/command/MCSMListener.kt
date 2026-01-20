@@ -29,6 +29,7 @@ import top.limbang.mcsm.entity.Chat
 import top.limbang.mcsm.entity.MinecraftLog
 import top.limbang.mcsm.network.RetrofitClient
 import top.limbang.mcsm.network.model.FilesListResponse
+import top.limbang.mcsm.network.service.McloApi
 import top.limbang.mcsm.utils.*
 import java.io.*
 import java.net.URL
@@ -39,7 +40,7 @@ import kotlin.coroutines.CoroutineContext
 
 object MCSMListener : SimpleListenerHost() {
 
-    private val mcloApi = RetrofitClient(apiUrl = "https://api.mclo.gs/1/").getMcloApi()
+    private val mcloApi = RetrofitClient(baseUrl = "https://api.mclo.gs/1/").create<McloApi>()
 
     @PublishedApi
     internal val logger: MiraiLogger = MiraiLogger.Factory.create(this::class.java)

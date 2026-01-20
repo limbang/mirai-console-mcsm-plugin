@@ -34,7 +34,7 @@ internal class MCSManagerApiTest() {
         key = prop.getProperty("key")
         uuid = prop.getProperty("uuid")
         daemonId = prop.getProperty("daemonId")
-        api = RetrofitClient(url).getMCSManagerApi()
+        api = RetrofitClient(url).create<MCSManagerApi>()
     }
 
     @Test

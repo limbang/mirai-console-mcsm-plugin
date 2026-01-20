@@ -14,7 +14,7 @@ import top.limbang.mcsm.network.RetrofitClient
 import kotlin.test.Test
 
 internal class  McloApiTest {
-    val api = RetrofitClient(apiUrl = "https://api.mclo.gs/1/").getMcloApi()
+    val api = RetrofitClient(baseUrl = "https://api.mclo.gs/1/").create<McloApi>()
 
     @Test
     fun pasteLogFile(){

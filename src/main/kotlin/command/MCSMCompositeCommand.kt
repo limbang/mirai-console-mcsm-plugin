@@ -55,7 +55,7 @@ object MCSMCompositeCommand : CompositeCommand(
 
         val apiUrl = if (url.endsWith("/")) "${url}api/" else "$url/api/"
 
-        val api = RetrofitClient(apiUrl).getMCSManagerApi()
+        val api = RetrofitClient(apiUrl).create<MCSManagerApi>()
 
         // 验证是否能正常获取守护进程列表
         runCatching {

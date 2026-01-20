@@ -9,59 +9,67 @@
 
 package top.limbang.mcsm.network
 
-import kotlinx.serialization.json.Json
-import okhttp3.Interceptor
+import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
+import okhttp3.logging.HttpLoggingInterceptor
+import org.slf4j.LoggerFactory
 import retrofit2.Retrofit
-import top.limbang.mcsm.network.converter.toConverterFactory
+import retrofit2.converter.kotlinx.serialization.asConverterFactory
+import top.limbang.mcsm.network.config.SerializationConfig.json
 import top.limbang.mcsm.network.interceptor.StatusInterceptor
-import top.limbang.mcsm.network.service.MCSManagerApi
-import top.limbang.mcsm.network.service.McloApi
 import java.util.concurrent.TimeUnit
 
 class RetrofitClient(
-    apiUrl: String,
-    httpLoggingInterceptor: Interceptor? = null,
-    format: Json = Json {
-        ignoreUnknownKeys = true
-        encodeDefaults = true
-        explicitNulls = false
-    }
+    baseUrl: String,
+    private val isDebug: Boolean = false,
+    private val timeout: Long = 15L
 ) {
+    private val logger = LoggerFactory.getLogger(RetrofitClient::class.java)
+
+    // 确保 baseUrl 以 / 结尾，避免 Retrofit 运行时崩溃
+    private val sanitizedBaseUrl = if (baseUrl.endsWith("/")) baseUrl else "$baseUrl/"
 
     /**
      * ### 创建 okhttp 客户端
      */
     private val okHttpClient: OkHttpClient by lazy {
         OkHttpClient.Builder()
-            .connectTimeout(15, TimeUnit.SECONDS)
-            .readTimeout(15, TimeUnit.SECONDS)
-            .writeTimeout(15, TimeUnit.SECONDS)
-            .also { if (httpLoggingInterceptor != null) it.addInterceptor(httpLoggingInterceptor) }
+            .connectTimeout(timeout, TimeUnit.SECONDS)
+            .readTimeout(timeout, TimeUnit.SECONDS)
+            .writeTimeout(timeout, TimeUnit.SECONDS)
             .addInterceptor(StatusInterceptor())
+            .apply {
+                // 根据调试模式添加日志拦截器
+                if (isDebug) {
+                    val loggingInterceptor = HttpLoggingInterceptor { message ->
+                        if (message.isNotBlank()) logger.debug(message)
+                    }.apply {
+                        level = HttpLoggingInterceptor.Level.BODY
+                    }
+                    addInterceptor(loggingInterceptor)
+                }
+            }
             .build()
     }
 
     /**
      * ### 创建 Retrofit 实例
      */
-    private val instance by lazy {
+    val retrofit: Retrofit by lazy {
         Retrofit.Builder()
-            .baseUrl(apiUrl)
-            .addConverterFactory(format.toConverterFactory())
+            .baseUrl(baseUrl)
             .client(okHttpClient)
+            .addConverterFactory(json.asConverterFactory("application/json".toMediaType()))
             .build()
     }
 
 
     /**
-     * ### 获取 MCSManager api
+     * 创建指定类型的 Retrofit 服务实例
+     *
+     * @param T 需要创建的服务接口类型，必须使用 reified 类型参数
+     * @return 返回指定类型的 Retrofit 服务实例
      */
-    fun getMCSManagerApi(): MCSManagerApi {
-        return instance.create(MCSManagerApi::class.java)
-    }
+    inline fun <reified T> create(): T = retrofit.create(T::class.java)
 
-    fun getMcloApi(): McloApi {
-        return instance.create(McloApi::class.java)
-    }
 }
