@@ -7,11 +7,11 @@
  * https://github.com/limbang/mirai-console-mcsm-plugin/blob/master/LICENSE
  */
 
-package top.limbang.mcsm.network.service
+package top.limbang.mcsm.network.api
 
 import okhttp3.ResponseBody
 import retrofit2.http.*
-import top.limbang.mcsm.network.model.McloUrl
+import top.limbang.mcsm.network.entity.response.McloUrlResponse
 
 interface McloApi {
 
@@ -20,7 +20,7 @@ interface McloApi {
      */
     @FormUrlEncoded
     @POST("log")
-    suspend fun pasteLogFile(@Field("content") content: String): McloUrl
+    suspend fun pasteLogFile(@Field("content") content: String): McloUrlResponse
 
 
     /**

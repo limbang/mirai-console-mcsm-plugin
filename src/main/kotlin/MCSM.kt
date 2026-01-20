@@ -26,7 +26,7 @@ import top.limbang.mcsm.command.ModCompositeCommand
 import top.limbang.mcsm.config.MCSMData
 import top.limbang.mcsm.config.MCSMData.mcsmList
 import top.limbang.mcsm.network.RetrofitClient
-import top.limbang.mcsm.network.service.MCSManagerApi
+import top.limbang.mcsm.network.api.MCSManagerApi
 import top.limbang.mirai.event.GroupRenameEvent
 
 object MCSM : KotlinPlugin(

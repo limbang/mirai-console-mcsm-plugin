@@ -28,8 +28,8 @@ import top.limbang.mcsm.config.MCSMData.groupInstances
 import top.limbang.mcsm.entity.Chat
 import top.limbang.mcsm.entity.MinecraftLog
 import top.limbang.mcsm.network.RetrofitClient
-import top.limbang.mcsm.network.model.FilesListResponse
-import top.limbang.mcsm.network.service.McloApi
+import top.limbang.mcsm.network.api.McloApi
+import top.limbang.mcsm.network.entity.response.FilesListResponse
 import top.limbang.mcsm.utils.*
 import java.io.*
 import java.net.URL

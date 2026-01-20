@@ -7,11 +7,11 @@
  * https://github.com/limbang/mirai-console-mcsm-plugin/blob/master/LICENSE
  */
 
-package top.limbang.mcsm.network.service
+package top.limbang.mcsm.network.api
 
 import kotlinx.coroutines.runBlocking
 import top.limbang.mcsm.network.RetrofitClient
-import top.limbang.mcsm.network.model.GetFilesRequest
+import top.limbang.mcsm.network.entity.request.GetFilesRequest
 import top.limbang.mcsm.utils.*
 import java.io.*
 import java.net.URL

@@ -7,10 +7,16 @@
  * https://github.com/limbang/mirai-console-mcsm-plugin/blob/master/LICENSE
  */
 
-package top.limbang.mcsm.network.service
+package top.limbang.mcsm.network.api
 
 import retrofit2.http.*
-import top.limbang.mcsm.network.model.*
+import top.limbang.mcsm.network.entity.request.GetFilesRequest
+import top.limbang.mcsm.network.entity.request.TasksRequest
+import top.limbang.mcsm.network.entity.request.UpdateFilesRequest
+import top.limbang.mcsm.network.entity.response.Daemon
+import top.limbang.mcsm.network.entity.response.FilesDownloadResponse
+import top.limbang.mcsm.network.entity.response.FilesListResponse
+import top.limbang.mcsm.network.entity.response.MCSMResponse
 
 /**
  * ### Minecraft服务器管理器服务
@@ -21,7 +27,7 @@ interface MCSManagerApi {
      * ### 获取所有守护进程列表
      * @param apikey API 密钥
      */
-    @GET("network/service/remote_services")
+    @GET("network/api/remote_services")
     suspend fun getAllDaemonList(@Query("apikey") apikey: String): MCSMResponse<List<Daemon>>
 
     /**

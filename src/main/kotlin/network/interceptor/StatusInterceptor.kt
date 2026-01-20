@@ -17,7 +17,7 @@ import okhttp3.Interceptor
 import okhttp3.Response
 import okhttp3.ResponseBody
 import top.limbang.mcsm.exception.MCSMException
-import top.limbang.mcsm.network.model.MCSMResponse
+import top.limbang.mcsm.network.entity.response.MCSMResponse
 import java.nio.charset.Charset
 import java.nio.charset.StandardCharsets
 

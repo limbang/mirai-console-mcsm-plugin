@@ -7,7 +7,7 @@
  * https://github.com/limbang/mirai-console-mcsm-plugin/blob/master/LICENSE
  */
 
-package top.limbang.mcsm.network.model
+package top.limbang.mcsm.network.entity.request
 
 import kotlinx.serialization.Serializable
 

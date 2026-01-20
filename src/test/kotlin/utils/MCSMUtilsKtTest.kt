@@ -1,6 +1,6 @@
 package utils
 
-import top.limbang.mcsm.network.model.FilesDownloadResponse
+import top.limbang.mcsm.network.entity.response.FilesDownloadResponse
 import top.limbang.mcsm.utils.toDownloadUrl
 import kotlin.test.Test
 

@@ -12,7 +12,7 @@ package top.limbang.mcsm.config
 import net.mamoe.mirai.console.data.AutoSavePluginData
 import net.mamoe.mirai.console.data.ValueDescription
 import net.mamoe.mirai.console.data.value
-import top.limbang.mcsm.network.model.MCSManager
+import top.limbang.mcsm.entity.MCSManager
 
 /**
  * ### 插件配置
