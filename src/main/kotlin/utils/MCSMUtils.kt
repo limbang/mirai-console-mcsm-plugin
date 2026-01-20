@@ -9,8 +9,8 @@
 
 package top.limbang.mcsm.utils
 
-import top.limbang.mcsm.model.FilesDownloadResponse
-import top.limbang.mcsm.model.FilesListResponse
+import top.limbang.mcsm.network.model.FilesDownloadResponse
+import top.limbang.mcsm.network.model.FilesListResponse
 import java.text.SimpleDateFormat
 import java.time.LocalDateTime
 import java.time.ZoneId
