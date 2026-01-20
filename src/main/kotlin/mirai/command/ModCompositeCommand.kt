@@ -23,8 +23,16 @@ object ModCompositeCommand : CompositeCommand(
     primaryName = "mod",
     description = "Mod的一些指令"
 ) {
+
+    /**
+     * # 使用 [Spark](https://github.com/lucko/spark) 命令检测实例并返回结果
+     *
+     * 发送 `spark profiler --threads * --timeout 30` 命令
+     *
+     * @param name 实例名称
+     */
     @SubCommand("spark")
-    @Description("向实例发送spark命令")
+    @Description("向实例发送 spark 检测命令")
     suspend fun UserCommandSender.spark(name: String) {
         if (isNotGroup()) return
         val instance = getInstance(name)
@@ -63,5 +71,55 @@ object ModCompositeCommand : CompositeCommand(
         }.onFailure {
             sendMessage(it.localizedMessage)
         }
+    }
+
+    /**
+     * # 使用 [Observable](https://github.com/tasgon/observable) 命令检测实例并返回结果
+     *
+     * 发送 `observable run 30` 命令
+     *
+     * @param name 实例名称
+     */
+    @SubCommand("observable")
+    @Description("向实例发送 observable 检测命令")
+    suspend fun UserCommandSender.observable(name: String){
+        if (isNotGroup()) return
+        val instance = getInstance(name)
+
+        runCatching {
+            MCSMCompositeCommand.apiMap[instance.apiKey]!!.sendCommandInstance(
+                instance.uuid,
+                instance.daemonUUID,
+                instance.apiKey,
+                "observable run 30"
+            )
+        }.onSuccess {
+            val time = LocalTime.now().withNano(0)
+            delay(1000)
+            val result = MCSMCompositeCommand.apiMap[instance.apiKey]!!.getInstanceLog(
+                instance.uuid, instance.daemonUUID, instance.apiKey
+            ).data!!
+                .toRemoveColorCodeMinecraftLog()
+                .filter { it.time >= time && it.time.hour == time.hour && it.time.minute == time.minute }
+                .filter { """Running\sObservable\s.*30""".toRegex().containsMatchIn(it.contents) }
+            if (result.isEmpty()) {
+                sendMessage("未安装 observable 模组")
+                return
+            }
+            sendMessage("正在初始化 observable 分析器,30秒后返回结果...")
+            do {
+                delay(1000)
+                val sparkResult = MCSMCompositeCommand.apiMap[instance.apiKey]!!.getInstanceLog(
+                    instance.uuid, instance.daemonUUID, instance.apiKey
+                ).data!!
+                    .toRemoveColorCodeMinecraftLog()
+                    .filter { it.time >= time }
+                    .filter { "https".toRegex().containsMatchIn(it.contents) }
+                if (sparkResult.isNotEmpty()) sendMessage(sparkResult.last().contents)
+            } while (sparkResult.isEmpty())
+        }.onFailure {
+            sendMessage(it.localizedMessage)
+        }
+
     }
 }
