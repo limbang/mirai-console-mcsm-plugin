@@ -86,7 +86,8 @@
 > Mod命令
 
 ```shell
-/mod spark <name>    # 向实例发送spark命令
+/mod spark <name>    # 向实例发送 spark 检测命令
+/mod observable <name> # 向实例发送 observable 检测命令
 ```
 
 ## 鸣谢
