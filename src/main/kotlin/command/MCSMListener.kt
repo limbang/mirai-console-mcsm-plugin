@@ -40,7 +40,7 @@ import kotlin.coroutines.CoroutineContext
 
 object MCSMListener : SimpleListenerHost() {
 
-    private val mcloApi = RetrofitClient(baseUrl = "https://api.mclo.gs/1/").create<McloApi>()
+    private val mcloApi = RetrofitClient(baseUrl = "https://api.mclo.gs/").create<McloApi>()
 
     @PublishedApi
     internal val logger: MiraiLogger = MiraiLogger.Factory.create(this::class.java)

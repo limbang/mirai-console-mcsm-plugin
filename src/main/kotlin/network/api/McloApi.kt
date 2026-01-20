@@ -19,20 +19,20 @@ interface McloApi {
      * Paste a log file
      */
     @FormUrlEncoded
-    @POST("log")
+    @POST("1/log")
     suspend fun pasteLogFile(@Field("content") content: String): McloUrlResponse
 
 
     /**
      * Get the raw log file content
      */
-    @GET("raw/{id}")
+    @GET("1/raw/{id}")
     suspend fun getLogContent(@Path("id") id: String): ResponseBody
 
     /**
      * Get insights
      */
-    @GET("insights/{id}")
+    @GET("1/insights/{id}")
     suspend fun getInsights(@Path("id") id: String): ResponseBody
 
 }
