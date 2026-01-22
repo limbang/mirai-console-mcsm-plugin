@@ -15,14 +15,17 @@ import net.mamoe.mirai.console.command.UserCommandSender
 import top.limbang.mcsm.MCSM
 import top.limbang.mcsm.command.MCSMCompositeCommand.getInstance
 import top.limbang.mcsm.command.MCSMCompositeCommand.isNotGroup
+import top.limbang.mcsm.network.RetrofitClient
+import top.limbang.mcsm.network.api.ObservableApi
+import top.limbang.mcsm.utils.printPerformanceAnalysis
 import top.limbang.mcsm.utils.toRemoveColorCodeMinecraftLog
 import java.time.LocalTime
 
 object ModCompositeCommand : CompositeCommand(
-    owner = MCSM,
-    primaryName = "mod",
-    description = "Mod的一些指令"
+    owner = MCSM, primaryName = "mod", description = "Mod的一些指令"
 ) {
+
+    private val observableApi = RetrofitClient("https://observable.tas.sh/").create<ObservableApi>()
 
     /**
      * # 使用 [Spark](https://github.com/lucko/spark) 命令检测实例并返回结果
@@ -39,18 +42,14 @@ object ModCompositeCommand : CompositeCommand(
 
         runCatching {
             MCSMCompositeCommand.apiMap[instance.apiKey]!!.sendCommandInstance(
-                instance.uuid,
-                instance.daemonUUID,
-                instance.apiKey,
-                "spark profiler --threads * --timeout 30"
+                instance.uuid, instance.daemonUUID, instance.apiKey, "spark profiler --threads * --timeout 30"
             )
         }.onSuccess {
             val time = LocalTime.now().withNano(0)
             delay(1000)
             val result = MCSMCompositeCommand.apiMap[instance.apiKey]!!.getInstanceLog(
                 instance.uuid, instance.daemonUUID, instance.apiKey
-            ).data!!
-                .toRemoveColorCodeMinecraftLog()
+            ).data!!.toRemoveColorCodeMinecraftLog()
                 .filter { it.time >= time && it.time.hour == time.hour && it.time.minute == time.minute }
                 .filter { """\[⚡]\s(Initializing|Starting)""".toRegex().containsMatchIn(it.contents) }
             if (result.isEmpty()) {
@@ -62,9 +61,7 @@ object ModCompositeCommand : CompositeCommand(
                 delay(1000)
                 val sparkResult = MCSMCompositeCommand.apiMap[instance.apiKey]!!.getInstanceLog(
                     instance.uuid, instance.daemonUUID, instance.apiKey
-                ).data!!
-                    .toRemoveColorCodeMinecraftLog()
-                    .filter { it.time >= time }
+                ).data!!.toRemoveColorCodeMinecraftLog().filter { it.time >= time }
                     .filter { "https".toRegex().containsMatchIn(it.contents) }
                 if (sparkResult.isNotEmpty()) sendMessage(sparkResult.last().contents)
             } while (sparkResult.isEmpty())
@@ -82,24 +79,20 @@ object ModCompositeCommand : CompositeCommand(
      */
     @SubCommand("observable")
     @Description("向实例发送 observable 检测命令")
-    suspend fun UserCommandSender.observable(name: String){
+    suspend fun UserCommandSender.observable(name: String) {
         if (isNotGroup()) return
         val instance = getInstance(name)
 
         runCatching {
             MCSMCompositeCommand.apiMap[instance.apiKey]!!.sendCommandInstance(
-                instance.uuid,
-                instance.daemonUUID,
-                instance.apiKey,
-                "observable run 30"
+                instance.uuid, instance.daemonUUID, instance.apiKey, "observable run 30"
             )
         }.onSuccess {
             val time = LocalTime.now().withNano(0)
             delay(1000)
             val result = MCSMCompositeCommand.apiMap[instance.apiKey]!!.getInstanceLog(
                 instance.uuid, instance.daemonUUID, instance.apiKey
-            ).data!!
-                .toRemoveColorCodeMinecraftLog()
+            ).data!!.toRemoveColorCodeMinecraftLog()
                 .filter { it.time >= time && it.time.hour == time.hour && it.time.minute == time.minute }
                 .filter { """Running\sObservable\s.*30""".toRegex().containsMatchIn(it.contents) }
             if (result.isEmpty()) {
@@ -111,15 +104,16 @@ object ModCompositeCommand : CompositeCommand(
                 delay(1000)
                 val sparkResult = MCSMCompositeCommand.apiMap[instance.apiKey]!!.getInstanceLog(
                     instance.uuid, instance.daemonUUID, instance.apiKey
-                ).data!!
-                    .toRemoveColorCodeMinecraftLog()
-                    .filter { it.time >= time }
+                ).data!!.toRemoveColorCodeMinecraftLog().filter { it.time >= time }
                     .filter { "https".toRegex().containsMatchIn(it.contents) }
-                if (sparkResult.isNotEmpty()) sendMessage(sparkResult.last().contents)
+                if (sparkResult.isNotEmpty()) {
+                    sendMessage(sparkResult.last().contents)
+                    val id = """/get/([a-zA-Z0-9]+)""".toRegex().find(sparkResult.last().contents)!!.groupValues[1]
+                    sendMessage(observableApi.getDiagnosticInformation(id).printPerformanceAnalysis())
+                }
             } while (sparkResult.isEmpty())
         }.onFailure {
             sendMessage(it.localizedMessage)
         }
-
     }
 }
