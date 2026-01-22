@@ -11,6 +11,9 @@ package top.limbang.mcsm.utils
 
 import top.limbang.mcsm.entity.ObservablePerformanceMetric
 import top.limbang.mcsm.network.entity.response.ObservableResponse
+import java.time.Instant
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
 
 /**
  * 分析并打印格式化的性能报告
@@ -18,11 +21,24 @@ import top.limbang.mcsm.network.entity.response.ObservableResponse
  * @param topN 每一维度显示的最高消耗条目数量，默认为 10
  */
 fun ObservableResponse.printPerformanceAnalysis(topN: Int = 10): String = buildString {
-    // 1. 获取所有维度并排序
-    val allDimensions = (data.entities.keys + data.blocks.keys).distinct().sorted()
+    /// 1. 格式化诊断元数据
+    val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
+        .withZone(ZoneId.systemDefault())
+    val startTime = formatter.format(Instant.ofEpochMilli(diagnostics.start))
+
+    // 2. 构建报告总标题
+    appendLine("Observable 性能分析报告")
+    appendLine("----------------------")
+    appendLine("开始时间: $startTime")
+    appendLine("分析时长: ${diagnostics.duration/1000} 秒")
+    appendLine("游戏版本: ${diagnostics.minecraftVersion} (${diagnostics.modLoader})")
+    appendLine("Observable 版本: ${diagnostics.observableVersion}")
+
+    // 3. 获取并排序所有维度
+    val allDimensions = (data.entities.keys + data.blocks.keys).sorted()
 
     allDimensions.forEach { dim ->
-        // 2. 转换并合并当前维度的所有数据
+        // 4. 汇总当前维度的指标
         val metrics = mutableListOf<ObservablePerformanceMetric>()
 
         data.entities[dim]?.mapTo(metrics) {
@@ -32,16 +48,14 @@ fun ObservableResponse.printPerformanceAnalysis(topN: Int = 10): String = buildS
             ObservablePerformanceMetric(it.type, it.rate, it.position, ObservablePerformanceMetric.Category.BLOCK)
         }
 
-        // 3. 统计该维度的总消耗 (μs/t)
         val totalMicros = metrics.sumOf { it.rate } / 1000
 
-        // 4. 构建维度页眉
-        appendLine("\n" + "═".repeat(70))
-        appendLine("维度: $dim")
-        appendLine("总消耗: ${"%,d".format(totalMicros.toInt())} μs/t | 采样对象总数: ${metrics.size}")
-        appendLine("─".repeat(70))
+        // 5. 构建维度区块头
+        appendLine("\n◈ 维度: $dim")
+        appendLine("  总消耗: ${"%,d".format(totalMicros.toInt())} μs/t | 对象总数: ${metrics.size}")
+        appendLine("  " + "─".repeat(64))
 
-        // 5. 排序并取 Top N
+        // 6. 排序并取 Top N 写入
         metrics.sortedByDescending { it.rate }
             .take(topN)
             .forEach { metric ->
@@ -50,8 +64,7 @@ fun ObservableResponse.printPerformanceAnalysis(topN: Int = 10): String = buildS
                 val rateStr = metric.microsPerTick.toString().padStart(8)
                 val posStr = "(${metric.position.x}, ${metric.position.y}, ${metric.position.z})"
 
-                // 拼接每一行数据
-                appendLine("$categoryLabel $typeStr $rateStr μs/t    $posStr")
+                appendLine("  $categoryLabel $typeStr $rateStr μs/t   $posStr")
             }
     }
 }
