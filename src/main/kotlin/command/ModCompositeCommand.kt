@@ -108,7 +108,7 @@ object ModCompositeCommand : CompositeCommand(
                     .filter { "https".toRegex().containsMatchIn(it.contents) }
                 if (sparkResult.isNotEmpty()) {
                     sendMessage(sparkResult.last().contents)
-                    val id = """/get/([a-zA-Z0-9]+)""".toRegex().find(sparkResult.last().contents)!!.groupValues[1]
+                    val id = """/p/(\w+)""".toRegex().find(sparkResult.last().contents)!!.groupValues[1]
                     sendMessage(observableApi.getDiagnosticInformation(id).printPerformanceAnalysis())
                 }
             } while (sparkResult.isEmpty())
