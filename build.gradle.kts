@@ -1,5 +1,5 @@
 plugins {
-    val kotlinVersion = "2.3.0"
+    val kotlinVersion = "2.0.0"
     kotlin("jvm") version kotlinVersion
     kotlin("plugin.serialization") version kotlinVersion
 
@@ -16,10 +16,10 @@ repositories {
 }
 
 dependencies {
-    val retrofitVersion = "3.0.0"
-    val okhttpVersion = "5.3.2"
-    val serializationVersion = "1.9.0"
-    val coroutinesVersion = "1.10.2"
+    val retrofitVersion = "2.11.0"
+    val okhttpVersion = "5.0.0-alpha.14"
+    val serializationVersion = "1.6.3"
+    val coroutinesVersion = "1.10.0"
 
     implementation("org.slf4j:slf4j-api:2.0.17")
     implementation("com.squareup.retrofit2:retrofit:$retrofitVersion")

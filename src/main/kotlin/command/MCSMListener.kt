@@ -11,6 +11,7 @@ package top.limbang.mcsm.command
 
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import net.mamoe.mirai.console.command.CommandSender.Companion.toCommandSender
 import net.mamoe.mirai.console.permission.PermissionService.Companion.hasPermission
