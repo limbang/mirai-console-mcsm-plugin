@@ -27,7 +27,7 @@ interface MCSManagerApi {
      * ### 获取所有守护进程列表
      * @param apikey API 密钥
      */
-    @GET("network/api/remote_services")
+    @GET("service/remote_services")
     suspend fun getAllDaemonList(@Query("apikey") apikey: String): MCSMResponse<List<Daemon>>
 
     /**
@@ -162,7 +162,7 @@ interface MCSManagerApi {
      * @param page 第几页，0代表第一页
      * @param pageSize 每页容量，不得超过40
      */
-    @GET("/api/files/list")
+    @GET("files/list")
     suspend fun filesList(
         @Query("uuid") uuid: String,
         @Query("daemonId") daemonId: String,
@@ -181,7 +181,7 @@ interface MCSManagerApi {
      * @param apikey
      * @return
      */
-    @PUT("/api/files/")
+    @PUT("files")
     suspend fun getFile(
         @Query("uuid") uuid: String,
         @Query("daemonId") daemonId: String,
@@ -197,7 +197,7 @@ interface MCSManagerApi {
      * @param apikey
      * @return
      */
-    @PUT("/api/files/")
+    @PUT("files")
     suspend fun updateFile(
         @Query("uuid") uuid: String,
         @Query("daemonId") daemonId: String,
