@@ -13,10 +13,7 @@ import retrofit2.http.*
 import top.limbang.mcsm.network.entity.request.GetFilesRequest
 import top.limbang.mcsm.network.entity.request.TasksRequest
 import top.limbang.mcsm.network.entity.request.UpdateFilesRequest
-import top.limbang.mcsm.network.entity.response.Daemon
-import top.limbang.mcsm.network.entity.response.FilesDownloadResponse
-import top.limbang.mcsm.network.entity.response.FilesListResponse
-import top.limbang.mcsm.network.entity.response.MCSMResponse
+import top.limbang.mcsm.network.entity.response.*
 
 /**
  * ### Minecraft服务器管理器服务
@@ -67,7 +64,7 @@ interface MCSManagerApi {
         @Query("uuid") uuid: String,
         @Query("daemonId") daemonId: String,
         @Query("apikey") apikey: String
-    ): MCSMResponse<Map<String, String>>
+    ): MCSMResponse<KillInstanceResponse>
 
     /**
      * ### 重启实例
