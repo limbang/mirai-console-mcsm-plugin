@@ -54,9 +54,25 @@ internal class MCSManagerApiTest() {
     }
 
     @Test
+    fun killInstance(){
+        runBlocking {
+            val response = api.killInstance(uuid, daemonId,key)
+            assertNotNull(response.data)
+        }
+    }
+
+    @Test
     fun sendCommandInstance() {
         runBlocking {
             val response = api.sendCommandInstance(uuid, daemonId,key,"list")
+            assertNotNull(response.data)
+        }
+    }
+
+    @Test
+    fun getInstanceLog(){
+        runBlocking {
+            val response = api.getInstanceLog(uuid, daemonId,key)
             assertNotNull(response.data)
         }
     }
