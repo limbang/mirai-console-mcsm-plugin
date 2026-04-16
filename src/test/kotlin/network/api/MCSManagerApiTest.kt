@@ -147,4 +147,12 @@ internal class MCSManagerApiTest() {
             println(whitelist)
         }
     }
+
+    @Test
+    fun modList() {
+        runBlocking {
+            val modList = api.modList(uuid, daemonId, key).data!!
+            println(modList)
+        }
+    }
 }

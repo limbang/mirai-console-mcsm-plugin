@@ -9,6 +9,7 @@
 
 package top.limbang.mcsm.network.api
 
+import network.entity.response.ModListResponse
 import retrofit2.http.*
 import top.limbang.mcsm.network.entity.request.GetFilesRequest
 import top.limbang.mcsm.network.entity.request.TasksRequest
@@ -201,4 +202,25 @@ interface MCSManagerApi {
         @Query("apikey") apikey: String,
         @Body body: UpdateFilesRequest
     ): MCSMResponse<Boolean>
+
+    /**
+     * ### 获取模组或插件列表
+     *
+     * @param uuid 守护进程下的实例 UUID
+     * @param daemonId 守护进程 UUID
+     * @param apikey API 密钥
+     * @param folder 可选：文件夹过滤（mods/plugins），默认为 mods
+     * @param page 当前页码（默认 1）
+     * @param pageSize 每页大小（默认 50，最大 50）
+     * @return [ModListResponse]
+     */
+    @GET("mod/list")
+    suspend fun modList(
+        @Query("uuid") uuid: String,
+        @Query("daemonId") daemonId: String,
+        @Query("apikey") apikey: String,
+        @Query("folder") folder: String = "mods",
+        @Query("page") page: Int = 1,
+        @Query("pageSize") pageSize: Int = 50
+    ): MCSMResponse<ModListResponse>
 }
