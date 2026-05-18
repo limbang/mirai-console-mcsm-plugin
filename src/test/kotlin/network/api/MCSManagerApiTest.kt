@@ -9,16 +9,20 @@
 
 package top.limbang.mcsm.network.api
 
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
 import top.limbang.mcsm.network.RetrofitClient
 import top.limbang.mcsm.network.entity.request.GetFilesRequest
 import top.limbang.mcsm.utils.*
 import java.io.*
 import java.net.URL
+import java.time.Instant
+import java.time.ZoneId
 import java.util.*
 import java.util.zip.GZIPInputStream
 import kotlin.test.Test
 import kotlin.test.assertNotNull
+import kotlin.time.Duration.Companion.milliseconds
 
 internal class MCSManagerApiTest() {
     private val api: MCSManagerApi
@@ -34,13 +38,13 @@ internal class MCSManagerApiTest() {
         key = prop.getProperty("key")
         uuid = prop.getProperty("uuid")
         daemonId = prop.getProperty("daemonId")
-        api = RetrofitClient(url,true).create<MCSManagerApi>()
+        api = RetrofitClient(url, true).create<MCSManagerApi>()
     }
 
     @Test
     fun getAllDaemonList() {
         runBlocking {
-           val response = api.getAllDaemonList(key)
+            val response = api.getAllDaemonList(key)
             assertNotNull(response.data)
         }
     }
@@ -48,15 +52,15 @@ internal class MCSManagerApiTest() {
     @Test
     fun openInstance() {
         runBlocking {
-            val response = api.openInstance(uuid, daemonId,key)
+            val response = api.openInstance(uuid, daemonId, key)
             assertNotNull(response.data)
         }
     }
 
     @Test
-    fun killInstance(){
+    fun killInstance() {
         runBlocking {
-            val response = api.killInstance(uuid, daemonId,key)
+            val response = api.killInstance(uuid, daemonId, key)
             assertNotNull(response.data)
         }
     }
@@ -64,15 +68,15 @@ internal class MCSManagerApiTest() {
     @Test
     fun sendCommandInstance() {
         runBlocking {
-            val response = api.sendCommandInstance(uuid, daemonId,key,"list")
+            val response = api.sendCommandInstance(uuid, daemonId, key, "list")
             assertNotNull(response.data)
         }
     }
 
     @Test
-    fun getInstanceLog(){
+    fun getInstanceLog() {
         runBlocking {
-            val response = api.getInstanceLog(uuid, daemonId,key)
+            val response = api.getInstanceLog(uuid, daemonId, key)
             assertNotNull(response.data)
         }
     }
@@ -155,4 +159,17 @@ internal class MCSManagerApiTest() {
             println(modList)
         }
     }
+
+    @Test
+    fun sendCommand() = runBlocking {
+        val result = api.sendCommandInstance(uuid, daemonId, key, "list")
+        val time = Instant.ofEpochMilli(result.time).atZone(ZoneId.systemDefault()).toLocalTime().withNano(0)
+        delay(1000.milliseconds)
+        val logs = api.getInstanceLog(uuid, daemonId, key).data!!
+        val newLogs = logs.toRemoveColorCodeMinecraftLog()
+            .filter { it.time >= time && it.time.hour == time.hour && it.time.minute == time.minute }
+        newLogs.forEach { println(it.contents) }
+        assert(newLogs.isNotEmpty())
+    }
+
 }
