@@ -38,12 +38,12 @@ import java.time.Instant
 import java.time.ZoneId
 import java.util.zip.GZIPInputStream
 import kotlin.coroutines.CoroutineContext
+import kotlin.time.Duration.Companion.milliseconds
 
 object MCSMListener : SimpleListenerHost() {
 
     private val mcloApi = RetrofitClient(baseUrl = "https://api.mclo.gs/").create<McloApi>()
 
-    @PublishedApi
     internal val logger: MiraiLogger = MiraiLogger.Factory.create(this::class.java)
     override fun handleException(context: CoroutineContext, exception: Throwable) {
         logger.warning(exception.message)
@@ -170,13 +170,13 @@ object MCSMListener : SimpleListenerHost() {
             }.onSuccess {
                 group.sendMessage("[$name]启动成功")
             }.onFailure { e ->
-                if (e.localizedMessage == "实例未处于关闭状态，无法再进行启动") {
+                if ((e.localizedMessage ?: e.message) == "实例未处于关闭状态，无法再进行启动") {
                     group.sendMessage("检测到服务器正在运行中,尝试获取在线人数请稍等...")
                     val instant = apiMap[instance.apiKey]!!.sendCommandInstance(
                         instance.uuid, instance.daemonUUID, instance.apiKey, "list"
                     ).time
                     val time = Instant.ofEpochMilli(instant).atZone(ZoneId.systemDefault()).toLocalTime().withNano(0)
-                    delay(1000)
+                    delay(1000.milliseconds)
                     val log = apiMap[instance.apiKey]!!.getInstanceLog(
                         instance.uuid, instance.daemonUUID, instance.apiKey
                     ).data!!.toRemoveColorCodeMinecraftLog()
@@ -309,17 +309,17 @@ object MCSMListener : SimpleListenerHost() {
     private suspend fun GroupMessageEvent.sendMinecraftLog(logs: List<MinecraftLog>) {
 
         charMessage(logs).run {
-            delay(60)
+            delay(60.milliseconds)
             if (isNotEmpty()) group.sendImage("服务器玩家聊天记录：\n$this".toImage().toInput(), "png")
         }
 
         joinTheExitGameMessage(logs).run {
-            delay(60)
+            delay(60.milliseconds)
             if (isNotEmpty()) group.sendImage("服务器玩家上下线记录：\n$this".toImage().toInput(), "png")
         }
 
         opLogMessage(logs).run {
-            delay(60)
+            delay(60.milliseconds)
             if (isNotEmpty()) group.sendImage("服务器管理员修改记录：\n$this".toImage().toInput(), "png")
         }
     }

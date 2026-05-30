@@ -12,6 +12,7 @@ package top.limbang.mcsm.command
 import kotlinx.coroutines.delay
 import net.mamoe.mirai.console.command.CompositeCommand
 import net.mamoe.mirai.console.command.UserCommandSender
+import net.mamoe.mirai.utils.MiraiLogger
 import top.limbang.mcsm.MCSM
 import top.limbang.mcsm.command.MCSMCompositeCommand.getInstance
 import top.limbang.mcsm.command.MCSMCompositeCommand.isNotGroup
@@ -20,10 +21,13 @@ import top.limbang.mcsm.network.api.ObservableApi
 import top.limbang.mcsm.utils.printPerformanceAnalysis
 import top.limbang.mcsm.utils.toRemoveColorCodeMinecraftLog
 import java.time.LocalTime
+import kotlin.time.Duration.Companion.milliseconds
 
 object ModCompositeCommand : CompositeCommand(
     owner = MCSM, primaryName = "mod", description = "Mod的一些指令"
 ) {
+
+    internal val logger: MiraiLogger = MiraiLogger.Factory.create(this::class.java)
 
     private val observableApi = RetrofitClient("https://observable.tas.sh/").create<ObservableApi>()
 
@@ -46,7 +50,7 @@ object ModCompositeCommand : CompositeCommand(
             )
         }.onSuccess {
             val time = LocalTime.now().withNano(0)
-            delay(1000)
+            delay(1000.milliseconds)
             val result = MCSMCompositeCommand.apiMap[instance.apiKey]!!.getInstanceLog(
                 instance.uuid, instance.daemonUUID, instance.apiKey
             ).data!!.toRemoveColorCodeMinecraftLog()
@@ -58,7 +62,7 @@ object ModCompositeCommand : CompositeCommand(
             }
             sendMessage("正在初始化 Spark 分析器,30秒后返回结果...")
             do {
-                delay(1000)
+                delay(1000.milliseconds)
                 val sparkResult = MCSMCompositeCommand.apiMap[instance.apiKey]!!.getInstanceLog(
                     instance.uuid, instance.daemonUUID, instance.apiKey
                 ).data!!.toRemoveColorCodeMinecraftLog().filter { it.time >= time }
@@ -66,7 +70,8 @@ object ModCompositeCommand : CompositeCommand(
                 if (sparkResult.isNotEmpty()) sendMessage(sparkResult.last().contents)
             } while (sparkResult.isEmpty())
         }.onFailure {
-            sendMessage(it.localizedMessage)
+            sendMessage(it.message ?: "未知错误")
+            logger.error(it)
         }
     }
 
@@ -89,7 +94,7 @@ object ModCompositeCommand : CompositeCommand(
             )
         }.onSuccess {
             val time = LocalTime.now().withNano(0)
-            delay(1000)
+            delay(1000.milliseconds)
             val result = MCSMCompositeCommand.apiMap[instance.apiKey]!!.getInstanceLog(
                 instance.uuid, instance.daemonUUID, instance.apiKey
             ).data!!.toRemoveColorCodeMinecraftLog()
@@ -101,7 +106,7 @@ object ModCompositeCommand : CompositeCommand(
             }
             sendMessage("正在初始化 observable 分析器,30秒后返回结果...")
             do {
-                delay(1000)
+                delay(1000.milliseconds)
                 val sparkResult = MCSMCompositeCommand.apiMap[instance.apiKey]!!.getInstanceLog(
                     instance.uuid, instance.daemonUUID, instance.apiKey
                 ).data!!.toRemoveColorCodeMinecraftLog().filter { it.time >= time }
@@ -113,7 +118,8 @@ object ModCompositeCommand : CompositeCommand(
                 }
             } while (sparkResult.isEmpty())
         }.onFailure {
-            sendMessage(it.localizedMessage)
+            sendMessage(it.message ?: "未知错误")
+            logger.error(it)
         }
     }
 }

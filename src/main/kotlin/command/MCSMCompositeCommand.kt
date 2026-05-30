@@ -17,6 +17,7 @@ import net.mamoe.mirai.console.plugin.id
 import net.mamoe.mirai.console.util.ConsoleExperimentalApi
 import net.mamoe.mirai.contact.Group
 import net.mamoe.mirai.event.broadcast
+import net.mamoe.mirai.utils.MiraiLogger
 import top.limbang.mcsm.MCSM
 import top.limbang.mcsm.MCSM.isLoadGeneralPluginInterface
 import top.limbang.mcsm.config.GroupInstance
@@ -30,22 +31,20 @@ import top.limbang.mcsm.utils.toRemoveColorCodeMinecraftLog
 import top.limbang.mirai.event.GroupRenameEvent
 import java.time.Instant
 import java.time.ZoneId
+import kotlin.time.Duration.Companion.milliseconds
 
 @OptIn(ConsoleExperimentalApi::class)
 object MCSMCompositeCommand : CompositeCommand(
-    owner = MCSM,
-    primaryName = "mcsm",
-    description = "控制 MCSM API 的指令"
+    owner = MCSM, primaryName = "mcsm", description = "控制 MCSM API 的指令"
 ) {
     private val http = """^https?://""".toRegex()
     val apiMap: MutableMap<String, MCSManagerApi> = mutableMapOf()
+    internal val logger: MiraiLogger = MiraiLogger.Factory.create(this::class.java)
 
     @SubCommand("addmcsm")
     @Description("添加需要管理的 MCSManager")
     suspend fun CommandSender.addmcsm(
-        @Name("MCSM 名称") name: String,
-        @Name("MCSM URL") url: String,
-        @Name("MCSM KEY") key: String
+        @Name("MCSM 名称") name: String, @Name("MCSM URL") url: String, @Name("MCSM KEY") key: String
     ) {
 
         if (!http.containsMatchIn(url)) {
@@ -61,7 +60,8 @@ object MCSMCompositeCommand : CompositeCommand(
         runCatching {
             updateMCSM(name = name, apiUrl = apiUrl, key = key, api = api)
         }.onFailure {
-            sendMessage(it.localizedMessage)
+            sendMessage(it.localizedMessage ?: it.message ?: "未知错误")
+            logger.error(it)
         }.onSuccess {
             if (it) {
                 apiMap[key] = api
@@ -82,10 +82,7 @@ object MCSMCompositeCommand : CompositeCommand(
         val daemons = api.getAllDaemonList(key).data ?: return false
 
         val mcsm = MCSManager(
-            name = name,
-            url = apiUrl,
-            key = key,
-            daemons = daemons
+            name = name, url = apiUrl, key = key, daemons = daemons
         )
 
         // 添加
@@ -116,7 +113,8 @@ object MCSMCompositeCommand : CompositeCommand(
         apiMap.forEach { (key, api) ->
             val mcsm = mcsmList.find { it.key == key } ?: return@forEach
             runCatching { updateMCSM(mcsm = mcsm, api = api) }.onFailure {
-                sendMessage(it.localizedMessage)
+                sendMessage(it.localizedMessage ?: it.message ?: "未知错误")
+                logger.error(it)
             }
         }
 
@@ -132,7 +130,7 @@ object MCSMCompositeCommand : CompositeCommand(
             }
         }
 
-        if(mcsmList.size == 0) sendMessage("未添加 MCSM.") else sendMessage(msg.trimEnd())
+        if (mcsmList.isEmpty()) sendMessage("未添加 MCSM.") else sendMessage(msg.trimEnd())
     }
 
     internal suspend fun UserCommandSender.isNotGroup() = (subject !is Group).also {
@@ -165,8 +163,7 @@ object MCSMCompositeCommand : CompositeCommand(
         @Name("实例名称") instanceName: String
     ) {
         if (isNotGroup()) return
-        if (groupInstances[subject.id] == null)
-            groupInstances[subject.id] = mutableListOf()
+        if (groupInstances[subject.id] == null) groupInstances[subject.id] = mutableListOf()
 
         val mcsm = mcsmList.find { it.name == mcsmName } ?: return
         val daemon = mcsm.daemons.find { it.uuid.indexOf(daemonUUID) != -1 } ?: return
@@ -226,11 +223,21 @@ object MCSMCompositeCommand : CompositeCommand(
         } else false
     }
 
-    internal suspend fun UserCommandSender.getInstance(name: String) = try {
-        groupInstances[subject.id]!!.find { name == it.name }!!
-    } catch (e: Exception) {
-        sendMessage(e.localizedMessage)
-        throw e
+    internal suspend fun UserCommandSender.getInstance(name: String): GroupInstance {
+        val instances = groupInstances[subject.id]
+        if (instances == null) {
+            sendMessage("当前群组未配置任何服务器实例，请先使用 /mcsm add 添加实例")
+            throw IllegalStateException("群组 $subject.id 未配置任何服务器实例")
+        }
+
+        val instance = instances.find { name == it.name }
+        if (instance == null) {
+            val availableNames = instances.joinToString(", ") { it.name }
+            sendMessage("未找到名为 [$name] 的实例。\n可用实例: $availableNames")
+            throw NoSuchElementException("实例 [$name] 不存在，可用实例: $availableNames")
+        }
+
+        return instance
     }
 
     @SubCommand("start")
@@ -240,14 +247,13 @@ object MCSMCompositeCommand : CompositeCommand(
         val instance = getInstance(name)
         runCatching {
             apiMap[instance.apiKey]!!.openInstance(
-                uuid = instance.uuid,
-                daemonId = instance.daemonUUID,
-                apikey = instance.apiKey
+                uuid = instance.uuid, daemonId = instance.daemonUUID, apikey = instance.apiKey
             )
         }.onSuccess {
             sendMessage("开启实例[$name]成功")
         }.onFailure {
-            sendMessage(it.localizedMessage)
+            sendMessage(it.localizedMessage ?: it.message ?: "未知错误")
+            logger.error(it)
         }
     }
 
@@ -258,13 +264,14 @@ object MCSMCompositeCommand : CompositeCommand(
         val instance = getInstance(name)
         runCatching {
             apiMap[instance.apiKey]!!.stopInstance(
-                uuid = instance.uuid,
-                daemonId = instance.daemonUUID,
-                apikey = instance.apiKey
+                uuid = instance.uuid, daemonId = instance.daemonUUID, apikey = instance.apiKey
             )
         }.onSuccess {
             sendMessage("关闭实例[$name]成功")
-        }.onFailure { sendMessage(it.localizedMessage) }
+        }.onFailure {
+            sendMessage(it.localizedMessage ?: it.message ?: "未知错误")
+            logger.error(it)
+        }
     }
 
 
@@ -275,13 +282,14 @@ object MCSMCompositeCommand : CompositeCommand(
         val instance = getInstance(name)
         runCatching {
             apiMap[instance.apiKey]!!.killInstance(
-                uuid = instance.uuid,
-                daemonId = instance.daemonUUID,
-                apikey = instance.apiKey
+                uuid = instance.uuid, daemonId = instance.daemonUUID, apikey = instance.apiKey
             )
         }.onSuccess {
             sendMessage("终止实例[$name]成功")
-        }.onFailure { sendMessage(it.localizedMessage) }
+        }.onFailure {
+            sendMessage(it.localizedMessage ?: it.message ?: "未知错误")
+            logger.error(it)
+        }
     }
 
 
@@ -292,13 +300,14 @@ object MCSMCompositeCommand : CompositeCommand(
         val instance = getInstance(name)
         runCatching {
             apiMap[instance.apiKey]!!.restartInstance(
-                uuid = instance.uuid,
-                daemonId = instance.daemonUUID,
-                apikey = instance.apiKey
+                uuid = instance.uuid, daemonId = instance.daemonUUID, apikey = instance.apiKey
             )
         }.onSuccess {
             sendMessage("重启实例[$name]成功")
-        }.onFailure { sendMessage(it.localizedMessage) }
+        }.onFailure {
+            sendMessage(it.localizedMessage ?: it.message ?: "未知错误")
+            logger.error(it)
+        }
     }
 
 
@@ -328,22 +337,21 @@ object MCSMCompositeCommand : CompositeCommand(
         val instance = groupInstances[groupID]!!.find { name == it.name }!!
         runCatching {
             sendCommandInstance(
-                instance.uuid,
-                instance.daemonUUID,
-                instance.apiKey,
-                command
+                instance.uuid, instance.daemonUUID, instance.apiKey, command
             )
         }.onSuccess { response ->
             // 获取命令发送成功的时间戳以默认时区转成时间
             val time = Instant.ofEpochMilli(response.time).atZone(ZoneId.systemDefault()).toLocalTime().withNano(0)
-            delay(1000)
+            delay(1000.milliseconds)
             var message = ""
-            getInstanceLog(instance.uuid, instance.daemonUUID, instance.apiKey).data!!
-                .toRemoveColorCodeMinecraftLog()
+            getInstanceLog(instance.uuid, instance.daemonUUID, instance.apiKey).data!!.toRemoveColorCodeMinecraftLog()
                 .filter { it.time >= time && it.time.hour == time.hour && it.time.minute == time.minute }
                 .forEach { message += "${it.contents}\n" }
             return if (message.isNotEmpty()) message.substring(0, message.length - 1) else message
-        }.onFailure { return it.localizedMessage }
+        }.onFailure {
+            logger.error(it)
+            return it.localizedMessage ?: it.message ?: "未知错误"
+        }
         return ""
     }
 
@@ -357,14 +365,14 @@ object MCSMCompositeCommand : CompositeCommand(
         val tasks = TasksRequest(name = tasksName, count = count, time = time, payload = spliceVararg(command))
         runCatching {
             apiMap[instance.apiKey]!!.createScheduledTasks(
-                instance.uuid,
-                instance.daemonUUID,
-                instance.apiKey,
-                tasks
+                instance.uuid, instance.daemonUUID, instance.apiKey, tasks
             )
         }.onSuccess {
             sendMessage("创建计划任务[$tasksName]:$it")
-        }.onFailure { sendMessage(it.localizedMessage) }
+        }.onFailure {
+            sendMessage(it.localizedMessage ?: it.message ?: "未知错误")
+            logger.error(it)
+        }
 
     }
 
@@ -375,16 +383,13 @@ object MCSMCompositeCommand : CompositeCommand(
         val instance = getInstance(name)
         runCatching {
             apiMap[instance.apiKey]!!.deleteScheduledTasks(
-                instance.uuid,
-                instance.daemonUUID,
-                instance.apiKey,
-                tasksName
+                instance.uuid, instance.daemonUUID, instance.apiKey, tasksName
             )
         }.onSuccess {
             sendMessage("删除计划任务[$tasksName]:$it")
-        }.onFailure { sendMessage(it.localizedMessage) }
-
+        }.onFailure {
+            sendMessage(it.localizedMessage ?: it.message ?: "未知错误")
+            logger.error(it)
+        }
     }
-
-
 }
