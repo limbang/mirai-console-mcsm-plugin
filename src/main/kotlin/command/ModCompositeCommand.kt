@@ -66,7 +66,7 @@ object ModCompositeCommand : CompositeCommand(
                 val sparkResult = MCSMCompositeCommand.apiMap[instance.apiKey]!!.getInstanceLog(
                     instance.uuid, instance.daemonUUID, instance.apiKey
                 ).data!!.toRemoveColorCodeMinecraftLog().filter { it.time >= time }
-                    .filter { "https".toRegex().containsMatchIn(it.contents) }
+                    .filter { """https://spark\.lucko\.me/([a-zA-Z0-9]{5,})""".toRegex().containsMatchIn(it.contents) }
                 if (sparkResult.isNotEmpty()) sendMessage(sparkResult.last().contents)
             } while (sparkResult.isEmpty())
         }.onFailure {
