@@ -12,19 +12,19 @@ package top.limbang.mcsm.network.entity.response
 import kotlinx.serialization.Serializable
 
 /**
- * ### 终止实例 API 返回的数据结构
+ * ### 操作实例 API 返回的数据结构
  */
 @Serializable
-data class KillInstanceResponse(
+data class InstanceResponse(
     val instanceUuid: String,
-    val instances: List<KillInstanceItem>
+    val instances: List<InstanceItem>
 )
 
 /**
  * ### 终止实例项
  */
 @Serializable
-data class KillInstanceItem(
+data class InstanceItem(
     val instanceUuid: String,
     val nickname: String
 )

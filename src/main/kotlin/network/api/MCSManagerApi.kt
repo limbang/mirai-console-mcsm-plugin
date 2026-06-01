@@ -39,7 +39,7 @@ interface MCSManagerApi {
         @Query("uuid") uuid: String,
         @Query("daemonId") daemonId: String,
         @Query("apikey") apikey: String
-    ): MCSMResponse<Map<String, String>>
+    ): MCSMResponse<InstanceResponse>
 
     /**
      * ### 关闭实例
@@ -52,7 +52,7 @@ interface MCSManagerApi {
         @Query("uuid") uuid: String,
         @Query("daemonId") daemonId: String,
         @Query("apikey") apikey: String
-    ): MCSMResponse<Map<String, String>>
+    ): MCSMResponse<InstanceResponse>
 
     /**
      * ### 终止实例
@@ -65,7 +65,7 @@ interface MCSManagerApi {
         @Query("uuid") uuid: String,
         @Query("daemonId") daemonId: String,
         @Query("apikey") apikey: String
-    ): MCSMResponse<KillInstanceResponse>
+    ): MCSMResponse<InstanceResponse>
 
     /**
      * ### 重启实例
@@ -78,7 +78,7 @@ interface MCSManagerApi {
         @Query("uuid") uuid: String,
         @Query("daemonId") daemonId: String,
         @Query("apikey") apikey: String
-    ): MCSMResponse<Map<String, String>>
+    ): MCSMResponse<InstanceResponse>
 
     /**
      * ### 发送命令到应用实例
