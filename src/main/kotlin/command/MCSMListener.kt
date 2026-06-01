@@ -200,6 +200,8 @@ object MCSMListener : SimpleListenerHost() {
                         return@launch
                     }
                     group.sendMessage("服务器未卡死,如果是tps低等问题请联系管理员重启.")
+                } else {
+                    group.sendMessage("[$name]启动失败,${e.message}")
                 }
             }
         }
