@@ -310,6 +310,17 @@ object MCSMCompositeCommand : CompositeCommand(
         }
     }
 
+    @SubCommand("maintenance")
+    @Description("设置实例维护模式")
+    suspend fun UserCommandSender.setMaintenanceMode(name: String, maintenanceMode: Boolean) {
+        if (isNotGroup()) return
+        val instance = getInstance(name)
+        val instances = groupInstances[subject.id] ?: return
+        instances.remove(instance)
+        instances.add(instance.copy(isMaintenance = maintenanceMode))
+        sendMessage("设置实例[$name]维护模式为[$maintenanceMode]成功")
+    }
+
 
     /**
      * 以后面带一个空格的方式拼接可变参数

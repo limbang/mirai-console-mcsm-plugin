@@ -162,6 +162,9 @@ object MCSMListener : SimpleListenerHost() {
         // 黑名单判断
         if (config.blacklist.any { it.id == sender.id }) return
 
+        // 维护判断
+        if (instance.isMaintenance) return
+
         launch {
             runCatching {
                 apiMap[instance.apiKey]!!.openInstance(

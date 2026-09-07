@@ -19,4 +19,5 @@ data class GroupInstance(
     @ValueDescription("守护进程UUID") val daemonUUID: String,
     @ValueDescription("mcsm后台地址如:https//mc.limbang.top") val apiUrl: String,
     @ValueDescription("mcsm key 在 我的信息 -> API 接口密钥") val apiKey: String,
+    @ValueDescription("该实例是否在维护") val isMaintenance: Boolean = false,
 )
